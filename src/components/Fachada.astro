@@ -1,0 +1,270 @@
+---
+/**
+ * Fachada frontal del Superbloque 38 en SVG, generada en el build a partir de
+ * src/data/edificio.json. No envía JavaScript al navegador.
+ */
+import edificio from '../data/edificio.json';
+import { hash } from '../lib/hash';
+import type { Zona } from '../lib/constantes';
+
+interface Props {
+  /** Prefijo para los ids internos (si hay más de una fachada en la página) */
+  id?: string;
+  /** Zonas y pisos a resaltar */
+  resaltar?: { zonas: Zona[]; pisos?: number[] };
+  mostrarPisos?: boolean;
+  class?: string;
+}
+
+const { id = 'fachada', resaltar, mostrarPisos = false, class: className } = Astro.props;
+const b = edificio.building;
+
+const FLOORS = b.grid.floors;
+const COLS = b.grid.total_columns;
+const COL_W = 48;
+const FLOOR_H = 34;
+const PAD_L = mostrarPisos ? 44 : 20;
+const PAD_R = 20;
+const ROOF_H = 58;
+const W = PAD_L + COLS * COL_W + PAD_R;
+const H = ROOF_H + FLOORS * FLOOR_H + 22;
+const bx = PAD_L;
+const by = ROOF_H;
+
+const cores = b.grid.elevator_cores;
+const coreCols = new Set(cores.map((c) => c.column_index));
+const coreColors = b.core_palettes as Record<string, string[]>;
+
+// Filas de arriba (piso 15) hacia abajo (piso 1)
+const filas = Array.from({ length: FLOORS }, (_, r) => {
+  const piso = FLOORS - r;
+  const info = b.floor_palette.find((f) => f.floor === piso)!;
+  return { r, piso, y: by + r * FLOOR_H, color: info.color_hex, pasillo: info.type === 'corridor' };
+});
+
+// Segmentos horizontales de cada fila (sin los núcleos)
+const segmentos: { x: number; w: number }[] = [];
+let inicio = 0;
+for (let c = 0; c <= COLS; c++) {
+  if (c === COLS || coreCols.has(c)) {
+    if (c > inicio) segmentos.push({ x: bx + inicio * COL_W, w: (c - inicio) * COL_W });
+    inicio = c + 1;
+  }
+}
+
+function colorModulo(r: number, c: number, base: string) {
+  if (hash(r, c) >= 0.52) return null;
+  return hash(c, r + 99) < 0.7
+    ? base
+    : b.accent_palette[Math.floor(hash(r + 7, c) * b.accent_palette.length)];
+}
+
+// Estrella y arcos
+const star = b.artistic_features.roof_star;
+const sx = bx + star.position_column * COL_W + COL_W / 2;
+const sy = by - 30;
+const tri = (up: boolean, rad: number) => {
+  const a0 = up ? -Math.PI / 2 : Math.PI / 2;
+  return (
+    [0, 1, 2]
+      .map((i) => {
+        const a = a0 + (i * 2 * Math.PI) / 3;
+        return `${(sx + rad * Math.cos(a)).toFixed(1)},${(sy + rad * Math.sin(a)).toFixed(1)}`;
+      })
+      .join(' ')
+  );
+};
+const arcos = Array.from({ length: star.arcs }, (_, i) => {
+  const ex = bx + 7.2 * COL_W;
+  const ey = by + 5.2 * FLOOR_H + i * 28;
+  return `M${sx - 6 + i * 6} ${sy + 18} C${sx - 40 - i * 10} ${by + 8 * FLOOR_H + i * 20} ${bx + 13 * COL_W} ${by + 9.5 * FLOOR_H + i * 26} ${ex} ${ey}`;
+});
+
+// Resaltado de zonas
+const zonas = new Set(resaltar?.zonas ?? []);
+const pisosSel = resaltar?.pisos?.length ? new Set(resaltar.pisos) : null;
+const filasSel = filas.filter((f) => !pisosSel || pisosSel.has(f.piso));
+let filasPasillo = filasSel.filter((f) => f.pasillo);
+if (!filasPasillo.length) filasPasillo = filas.filter((f) => f.pasillo);
+
+/** Agrupa filas consecutivas en bandas verticales continuas */
+function bandas(fs: typeof filas) {
+  const out: { y: number; h: number }[] = [];
+  for (const f of fs) {
+    const last = out[out.length - 1];
+    if (last && Math.abs(last.y + last.h - f.y) < 0.5) last.h += FLOOR_H;
+    else out.push({ y: f.y, h: FLOOR_H });
+  }
+  return out;
+}
+const bandasSel = bandas(filasSel);
+const lineasColumnas = Array.from({ length: Math.floor(COLS / 4) + 1 }, (_, k) => bx + k * 4 * COL_W);
+---
+
+<svg
+  class:list={['fachada', className]}
+  viewBox={`0 0 ${W} ${H}`}
+  role="img"
+  aria-labelledby={`${id}-title`}
+  preserveAspectRatio="xMidYMid meet"
+>
+  <title id={`${id}-title`}>Ilustración de la fachada frontal del {b.name}: {FLOORS} pisos, {COLS} módulos y dos núcleos de escaleras y ascensores</title>
+  <defs>
+    <pattern id={`${id}-apto`} width={COL_W} height={FLOOR_H} patternUnits="userSpaceOnUse" x={bx} y={by}>
+      <rect width={COL_W} height={FLOOR_H} fill="none" stroke="#9a9ca3" stroke-width="4" />
+      <g fill="#fff" stroke="#1d1f24" stroke-width="1.2">
+        <rect x="7" y="7" width="13" height="12" />
+        <rect x="28" y="7" width="13" height="12" />
+      </g>
+      <path d="M13.5 7v12M34.5 7v12" stroke="#1d1f24" stroke-width="1" />
+    </pattern>
+    <pattern id={`${id}-reja`} width="5" height="5" patternUnits="userSpaceOnUse">
+      <rect width="5" height="5" fill="#d9dadd" />
+      <rect x=".5" y=".5" width="4" height="4" fill="none" stroke="#1d1f24" stroke-width=".9" />
+    </pattern>
+    <pattern id={`${id}-pasillo`} width={COL_W * 3} height={FLOOR_H} patternUnits="userSpaceOnUse" x={bx} y={by}>
+      <rect width={COL_W * 3} height={FLOOR_H} fill="#c3c5c9" />
+      <rect x="8" y="4" width="13" height="26" fill="#5b4a3c" />
+      <rect x="58" y="5" width="30" height="5" fill="#fff" stroke="#1d1f24" stroke-width=".8" />
+      <rect x="108" y="4" width="13" height="26" fill="#5b4a3c" />
+      <rect y="17" width={COL_W * 3} height="15" fill={`url(#${id}-reja)`} />
+      <path d={`M0 17H${COL_W * 3}`} stroke="#1d1f24" stroke-width="2" />
+      <path d={`M0 0V${FLOOR_H}M${COL_W} 0V${FLOOR_H}M${COL_W * 2} 0V${FLOOR_H}`} stroke="#9a9ca3" stroke-width="3" />
+    </pattern>
+  </defs>
+
+  <!-- Estructura base -->
+  <rect x={bx - 4} y={by - 4} width={COLS * COL_W + 8} height={FLOORS * FLOOR_H + 8} fill="#9a9ca3" />
+
+  {filas.map((f) => (
+    <g>
+      {f.pasillo ? (
+        segmentos.map((s) => <rect x={s.x} y={f.y} width={s.w} height={FLOOR_H} fill={`url(#${id}-pasillo)`} />)
+      ) : (
+        <>
+          {segmentos.map((s) => <rect x={s.x} y={f.y} width={s.w} height={FLOOR_H} fill="#eef0f2" />)}
+          {Array.from({ length: COLS }, (_, c) => c)
+            .filter((c) => !coreCols.has(c))
+            .map((c) => {
+              const col = colorModulo(f.r, c, f.color);
+              return col && <rect x={bx + c * COL_W} y={f.y} width={COL_W} height={FLOOR_H} fill={col} />;
+            })}
+          {segmentos.map((s) => <rect x={s.x} y={f.y} width={s.w} height={FLOOR_H} fill={`url(#${id}-apto)`} />)}
+        </>
+      )}
+    </g>
+  ))}
+
+  <!-- Núcleos de escaleras y ascensores -->
+  {cores.map((core) => {
+    const x = bx + core.column_index * COL_W;
+    const pal = coreColors[core.type] ?? [];
+    return (
+      <g>
+        <rect x={x - 3} y={by - 12} width={COL_W + 6} height={FLOORS * FLOOR_H + 12} fill="#dcdee2" stroke="#6b6e75" stroke-width="1.5" />
+        {filas.map((f) => (
+          <rect x={x + 7} y={f.y + 3} width={COL_W - 14} height={FLOOR_H - 6} rx="8" fill={pal[f.r] ?? '#fff'} stroke="#2a2c31" stroke-width="1" />
+        ))}
+      </g>
+    );
+  })}
+
+  <!-- Estructuras de la azotea -->
+  {b.roof_items.map((it) => (
+    <rect x={bx + it.column * COL_W} y={by - 20} width={COL_W * it.width} height="16" fill={it.color_hex} stroke="#2a2c31" stroke-width="1" />
+  ))}
+
+  <!-- Estrella y arcos -->
+  <g class="estela" fill="none" stroke={star.color} stroke-width="5" stroke-linecap="round" opacity=".85">
+    {arcos.map((d) => <path d={d} />)}
+  </g>
+  <g class="estrella" fill="rgba(255,215,0,.28)" stroke={star.color} stroke-width="3" stroke-linejoin="round">
+    <polygon points={tri(true, 22)} />
+    <polygon points={tri(false, 22)} />
+  </g>
+
+  <!-- Suelo -->
+  <rect x={bx - 14} y={by + FLOORS * FLOOR_H + 4} width={COLS * COL_W + 28} height="4" rx="2" fill="#e9e9e9" />
+
+  {mostrarPisos && (
+    <g class="pisos" font-size="13" text-anchor="end" fill="currentColor">
+      {filas.map((f) => <text x={bx - 10} y={f.y + FLOOR_H / 2 + 4}>{f.piso}</text>)}
+    </g>
+  )}
+
+  {zonas.size > 0 && (
+    <g class="resaltado">
+      {zonas.has('pasillos') && (
+        <g>
+          <title>Pasillos</title>
+          {filasPasillo.map((f) => <rect x={bx} y={f.y} width={COLS * COL_W} height={FLOOR_H} />)}
+        </g>
+      )}
+      {zonas.has('escaleras') && (
+        <g>
+          <title>Escaleras (núcleos)</title>
+          {cores.flatMap((core) =>
+            bandasSel.map((bd) => <rect x={bx + core.column_index * COL_W - 3} y={bd.y} width={COL_W + 6} height={bd.h} />),
+          )}
+        </g>
+      )}
+      {zonas.has('columnas') && (
+        <g>
+          <title>Columnas (esquemático)</title>
+          {lineasColumnas.flatMap((x) => bandasSel.map((bd) => <rect x={x - 4} y={bd.y} width="8" height={bd.h} />))}
+        </g>
+      )}
+      {zonas.has('azotea') && (
+        <g>
+          <title>Azotea</title>
+          <rect x={bx} y={by - 24} width={COLS * COL_W} height="24" />
+        </g>
+      )}
+      {zonas.has('fachada') && (
+        <g>
+          <title>Fachada</title>
+          <rect x={bx} y={by} width={COLS * COL_W} height={FLOORS * FLOOR_H} />
+        </g>
+      )}
+    </g>
+  )}
+</svg>
+
+<style>
+  .fachada {
+    display: block;
+    width: 100%;
+    height: auto;
+    color: var(--texto-suave, #8a8f98);
+  }
+  .estela path {
+    stroke-dasharray: 900;
+    stroke-dashoffset: 900;
+    animation: trazo 2.4s 0.3s ease-out forwards;
+  }
+  .estela path:nth-child(2) { animation-delay: 0.5s; }
+  .estela path:nth-child(3) { animation-delay: 0.7s; }
+  .estrella {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: brillo 3.5s ease-in-out infinite;
+  }
+  .resaltado rect {
+    fill: rgba(255, 59, 48, 0.22);
+    stroke: #ff3b30;
+    stroke-width: 3;
+    stroke-dasharray: 8 5;
+    animation: pulso 1.8s ease-in-out infinite;
+  }
+  @keyframes trazo { to { stroke-dashoffset: 0; } }
+  @keyframes brillo {
+    50% { filter: drop-shadow(0 0 8px #ffd700); }
+  }
+  @keyframes pulso {
+    50% { fill: rgba(255, 59, 48, 0.06); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .estela path { animation: none; stroke-dashoffset: 0; }
+    .estrella, .resaltado rect { animation: none; }
+  }
+</style>

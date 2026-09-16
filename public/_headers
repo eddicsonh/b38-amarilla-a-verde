@@ -1,0 +1,6 @@
+# Cloudflare Pages: los recursos con hash nunca cambian, se cachean 1 año
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/pdfs/*
+  Cache-Control: public, max-age=86400

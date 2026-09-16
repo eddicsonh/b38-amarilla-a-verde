@@ -1,0 +1,32 @@
+{
+  "estado_actual": {
+    "etiqueta": "Amarilla",
+    "descripcion": "Riesgo mitigado / Habitable con condiciones"
+  },
+  "meta": {
+    "etiqueta": "Verde",
+    "descripcion": "Estructura segura / Mantenimiento al día"
+  },
+  "requisitos": [
+    {
+      "texto": "Reparación de fosa y cables de ascensores",
+      "cumplido": true,
+      "reporte": null
+    },
+    {
+      "texto": "Impermeabilización de azotea",
+      "cumplido": true,
+      "reporte": null
+    },
+    {
+      "texto": "Adecuación del sistema contra incendios y luces de emergencia",
+      "cumplido": false,
+      "reporte": null
+    },
+    {
+      "texto": "Certificación de tuberías de gas",
+      "cumplido": false,
+      "reporte": null
+    }
+  ]
+}

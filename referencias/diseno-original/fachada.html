@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fachada Frontal - Bloque 38 23 de Enero</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #e0e0e0;
+            text-align: center;
+        }
+        .canvas-container {
+            width: 100%;
+            max-width: 1200px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #181818;
+            padding: 10px;
+            border: 1px solid #333;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            background-color: #181818;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>23 DE ENERO - BLOQUE 38 - FACHADA FRONTAL</h1>
+    <div class="canvas-container">
+        <canvas id="fachadaCanvas" width="1400" height="420"></canvas>
+    </div>
+
+<script>
+const canvas = document.getElementById('fachadaCanvas');
+const ctx = canvas.getContext('2d');
+
+// Dimensiones generales de la fachada
+const canvasWidth = canvas.width;
+const canvasHeight = canvas.height;
+
+// Estructura del edificio
+const startX = 20;
+const startY = 30;
+const buildingWidth = 1360;
+const buildingHeight = 360;
+
+const totalFloors = 15;
+const floorHeight = buildingHeight / totalFloors;
+
+// El edificio se divide horizontalmente en 3 grandes secciones principales separadas por 2 núcleos de ascensores/escaleras
+// Núcleos verticales en aproximadamente x_percent: 25% y 75%
+
+// Colores exactos por piso (de arriba 0 a abajo 14)
+const rowColors = [
+    "#d62839", // Piso 15 (Rojo/Rosa)
+    "#114b5f", // Piso 14 (Gris/Oscuro - Pasillo)
+    "#ffb703", // Piso 13 (Amarillo)
+    "#2a9d8f", // Piso 12 (Verde Claro)
+    "#028090", // Piso 11 (Verde Oscuro)
+    "#114b5f", // Piso 10 (Gris/Oscuro - Pasillo)
+    "#3a86ff", // Piso 9  (Azul Cielo)
+    "#5e548e", // Piso 8  (Morado Claro)
+    "#3c096c", // Piso 7  (Morado Oscuro)
+    "#114b5f", // Piso 6  (Gris/Oscuro - Pasillo)
+    "#e85d75", // Piso 5  (Rosa)
+    "#2a9d8f", // Piso 4  (Verde)
+    "#028090", // Piso 3  (Verde Oscuro)
+    "#114b5f", // Piso 2  (Gris/Oscuro - Pasillo)
+    "#ffb703"  // Piso 1  (Amarillo/Naranja)
+];
+
+// Colores de los elementos redondeados dentro de la torre izquierda y derecha
+const coreLeftColors = [
+    "#0077b6", "#d62839", "#ff8800", "#114b5f", "#00a896", 
+    "#028090", "#3c096c", "#5e548e", "#e85d75", "#114b5f", 
+    "#52b788", "#2a9d8f", "#00a896", "#ff8800", "#d62839"
+];
+
+const coreRightColors = [
+    "#3a86ff", "#028090", "#ffb703", "#e85d75", "#114b5f", 
+    "#ff8800", "#5e548e", "#3c096c", "#0077b6", "#2a9d8f", 
+    "#d62839", "#48cae4", "#028090", "#ffb703", "#3c096c"
+];
+
+function drawFacade() {
+    // Fondo de la escena
+    ctx.fillStyle = "#181818";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Suelo
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(startX - 10, startY + buildingHeight, buildingWidth + 20, 3);
+
+    const totalColumns = 32; // Total de módulos a lo largo del edificio
+    const colWidth = buildingWidth / totalColumns;
+
+    // Índices de columnas donde se ubican las dos torres verticales
+    const core1Index = 8;
+    const core2Index = 23;
+
+    // Dibujar Módulos de la fachada
+    for (let f = 0; f < totalFloors; f++) {
+        const y = startY + f * floorHeight;
+        const isCorridor = (f === 1 || f === 5 || f === 9 || f === 13);
+        const baseColor = rowColors[f];
+
+        for (let c = 0; c < totalColumns; c++) {
+            // Omitir columnas donde van las torres de ascensores
+            if (c === core1Index || c === core2Index) continue;
+
+            const x = startX + c * colWidth;
+
+            // Fondo del departamento / módulo
+            ctx.fillStyle = baseColor;
+            ctx.fillRect(x, y, colWidth, floorHeight);
+
+            // Borde del módulo
+            ctx.strokeStyle = "#222222";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, colWidth, floorHeight);
+
+            if (isCorridor) {
+                // Renderizar balcón / pasillo horizontal
+                ctx.fillStyle = "#2d2d2d";
+                ctx.fillRect(x, y + floorHeight * 0.35, colWidth, floorHeight * 0.65);
+
+                // Barandilla del pasillo
+                ctx.strokeStyle = "#111";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, y + floorHeight * 0.5, colWidth, floorHeight * 0.5);
+
+                // Malla/reja del balcón
+                for (let rx = x; rx < x + colWidth; rx += 3) {
+                    ctx.beginPath();
+                    ctx.moveTo(rx, y + floorHeight * 0.5);
+                    ctx.lineTo(rx, y + floorHeight);
+                    ctx.stroke();
+                }
+            } else {
+                // Ventanas estándar
+                const winW = colWidth * 0.36;
+                const winH = floorHeight * 0.5;
+                const winY = y + (floorHeight - winH) / 2;
+
+                ctx.fillStyle = "#ffffff";
+                ctx.strokeStyle = "#111111";
+                ctx.lineWidth = 1;
+
+                // Ventana 1
+                ctx.fillRect(x + colWidth * 0.1, winY, winW, winH);
+                ctx.strokeRect(x + colWidth * 0.1, winY, winW, winH);
+
+                // Ventana 2
+                ctx.fillRect(x + colWidth * 0.54, winY, winW, winH);
+                ctx.strokeRect(x + colWidth * 0.54, winY, winW, winH);
+
+                // Marco interior
+                ctx.beginPath();
+                ctx.moveTo(x + colWidth * 0.1 + winW / 2, winY);
+                ctx.lineTo(x + colWidth * 0.1 + winW / 2, winY + winH);
+                ctx.moveTo(x + colWidth * 0.54 + winW / 2, winY);
+                ctx.lineTo(x + colWidth * 0.54 + winW / 2, winY + winH);
+                ctx.stroke();
+            }
+        }
+    }
+
+    // Dibujar las dos Torres de Ascensores (Izquierda y Derecha)
+    drawCoreTower(startX + core1Index * colWidth, colWidth, coreLeftColors);
+    drawCoreTower(startX + core2Index * colWidth, colWidth, coreRightColors);
+
+    // Dibujar bloques superiores del techo
+    drawRoofStructures(colWidth);
+
+    // Dibujar la Estrella de David con sus estelas
+    drawStarAndArcs(startX + core2Index * colWidth - colWidth * 2);
+}
+
+function drawCoreTower(x, width, colorPalette) {
+    // Fondo blanco/gris de la torre vertical
+    ctx.fillStyle = "#e5e5e5";
+    ctx.fillRect(x - 2, startY - 12, width + 4, buildingHeight + 12);
+    ctx.strokeStyle = "#555";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x - 2, startY - 12, width + 4, buildingHeight + 12);
+
+    // Cápsulas/Bloques de color verticales
+    for (let f = 0; f < totalFloors; f++) {
+        const y = startY + f * floorHeight + 2;
+        ctx.fillStyle = colorPalette[f];
+
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(x + 3, y, width - 6, floorHeight - 4, 6);
+        } else {
+            ctx.rect(x + 3, y, width - 6, floorHeight - 4);
+        }
+        ctx.fill();
+        ctx.strokeStyle = "#333";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+}
+
+function drawRoofStructures(colWidth) {
+    // Tanques / estructuras superiores rectangulares
+    const roofItems = [
+        { col: 2, color: "#2a6f97", width: 2 },
+        { col: 8, color: "#ffffff", width: 1.2 },
+        { col: 14, color: "#d62839", width: 2 },
+        { col: 19, color: "#ffb703", width: 2 },
+        { col: 23, color: "#f72585", width: 1.2 },
+        { col: 28, color: "#3c096c", width: 2 }
+    ];
+
+    roofItems.forEach(item => {
+        const rx = startX + item.col * colWidth;
+        ctx.fillStyle = item.color;
+        ctx.fillRect(rx, startY - 14, colWidth * item.width, 14);
+        ctx.strokeStyle = "#333";
+        ctx.strokeRect(rx, startY - 14, colWidth * item.width, 14);
+    });
+}
+
+function drawStarAndArcs(anchorX) {
+    const starX = anchorX + 30;
+    const starY = startY - 8;
+
+    // Estelas curvadas amarillas en 3 arcos
+    ctx.strokeStyle = "#ffd700";
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = "#ffe600";
+    ctx.shadowBlur = 6;
+
+    for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(starX - 5 + i * 6, starY + 20);
+        ctx.bezierCurveTo(
+            starX - 180, starY + 80 + i * 25,
+            starX - 380, starY + 160 + i * 25,
+            startX + 320, startY + 130 + i * 35
+        );
+        ctx.stroke();
+    }
+
+    // Estrella de David de 6 puntas
+    drawHexagram(starX, starY, 20);
+    ctx.shadowBlur = 0;
+}
+
+function drawHexagram(cx, cy, radius) {
+    ctx.fillStyle = "rgba(255, 230, 0, 0.3)";
+    ctx.strokeStyle = "#ffd700";
+    ctx.lineWidth = 2.5;
+
+    // Triángulo 1 (Apuntando arriba)
+    drawTriangle(cx, cy, radius, true);
+    // Triángulo 2 (Apuntando abajo)
+    drawTriangle(cx, cy, radius, false);
+}
+
+function drawTriangle(cx, cy, radius, pointUp) {
+    const angle = pointUp ? -Math.PI / 2 : Math.PI / 2;
+    ctx.beginPath();
+    for (let i = 0; i < 3; i++) {
+        const a = angle + (i * 2 * Math.PI / 3);
+        const x = cx + radius * Math.cos(a);
+        const y = cy + radius * Math.sin(a);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+}
+
+// Inicializar renderizado
+drawFacade();
+</script>
+</body>
+</html>

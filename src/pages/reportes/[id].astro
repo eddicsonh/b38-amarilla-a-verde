@@ -1,0 +1,292 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Fachada from '../../components/Fachada.astro';
+import Lateral from '../../components/Lateral.astro';
+import Galeria from '../../components/Galeria.astro';
+import { ESTADO_COLOR, ZONA_ETIQUETA, formatoFecha } from '../../lib/constantes';
+
+export async function getStaticPaths() {
+  const reportes = await getCollection('reportes');
+  return reportes.map((reporte) => ({ params: { id: reporte.id }, props: { reporte } }));
+}
+
+interface Props {
+  reporte: CollectionEntry<'reportes'>;
+}
+
+const { reporte } = Astro.props;
+const d = reporte.data;
+const { Content } = await render(reporte);
+const resaltar = { zonas: d.zonas, pisos: d.pisos };
+const nombrePdf = (ruta: string) => decodeURIComponent(ruta.split('/').pop() ?? ruta);
+---
+
+<Base title={d.title} description={d.resumen ?? d.impacto_etiqueta}>
+  <article>
+    <header class="cabecera" style={`--acento: ${ESTADO_COLOR[d.status]}`}>
+      <div class="contenedor">
+        <a class="volver" href="/reportes/">← Todos los informes</a>
+        <div class="etiquetas">
+          <span class="estado">{d.status}</span>
+          <span>{d.area}</span>
+          <time datetime={d.date.toISOString()}>{formatoFecha(d.date)}</time>
+        </div>
+        <h1>{d.title}</h1>
+        {d.resumen && <p class="bajada">{d.resumen}</p>}
+      </div>
+
+      {d.zonas.length > 0 && (
+        <div class="contenedor mapa">
+          <div class="mapa-frontal">
+            <Fachada id="reporte-fachada" resaltar={resaltar} mostrarPisos />
+          </div>
+          <div class="mapa-lateral">
+            <Lateral id="reporte-lateral" resaltar={resaltar} />
+          </div>
+          <p class="mapa-leyenda">
+            <span class="muestra" aria-hidden="true"></span>
+            Zonas involucradas: <strong>{d.zonas.map((z) => ZONA_ETIQUETA[z]).join(', ')}</strong>
+            {d.pisos.length ? <> · Pisos {d.pisos.join(', ')}</> : <> · Pisos por precisar</>}
+          </p>
+        </div>
+      )}
+    </header>
+
+    <div class="contenedor cuerpo">
+      <aside class="impacto">
+        <p class="antetitulo">Impacto en la etiqueta</p>
+        <p>{d.impacto_etiqueta}</p>
+      </aside>
+
+      <div class="prosa">
+        <Content />
+      </div>
+
+      <section class="fotos" aria-label="Registro fotográfico">
+        <h2>Antes y después</h2>
+        <div class="fotos-grid">
+          <Galeria titulo="Antes" variante="antes" fotos={d.fotos.antes} vacio="Aún no hay fotos del estado inicial." />
+          <Galeria
+            titulo="Después"
+            variante="despues"
+            fotos={d.fotos.despues}
+            vacio="Las fotos del después se publicarán cuando la obra esté terminada."
+          />
+        </div>
+      </section>
+
+      {d.archivos_pdf.length > 0 && (
+        <section class="documentos">
+          <h2>Documentos y soportes</h2>
+          <ul>
+            {d.archivos_pdf.map((pdf) => (
+              <li>
+                <a href={pdf} target="_blank" rel="noopener">
+                  <span class="pdf" aria-hidden="true">PDF</span>
+                  {nombrePdf(pdf)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  </article>
+</Base>
+
+<style>
+  .cabecera {
+    background: var(--noche);
+    color: #fff;
+    padding-block: clamp(28px, 5vw, 56px);
+    border-bottom: 8px solid var(--acento);
+  }
+  .volver {
+    color: #a3a8b1;
+    text-decoration: none;
+    font-size: 0.95rem;
+  }
+  .volver:hover {
+    color: #fff;
+  }
+  .etiquetas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    margin-top: 24px;
+    color: #c9ccd2;
+    font-size: 0.95rem;
+  }
+  .estado {
+    background: var(--acento);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+  h1 {
+    font-size: clamp(2rem, 5.5vw, 3.6rem);
+    font-stretch: 75%;
+    font-weight: 800;
+    margin: 14px 0;
+    max-width: 22ch;
+  }
+  .bajada {
+    color: #c9ccd2;
+    font-size: 1.15rem;
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  .mapa {
+    display: grid;
+    grid-template-columns: 1fr minmax(90px, 150px);
+    gap: 16px 24px;
+    align-items: end;
+    margin-top: 36px;
+  }
+  .mapa-frontal {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  @media (max-width: 700px) {
+    .mapa {
+      grid-template-columns: 1fr 90px;
+    }
+    .mapa-frontal :global(svg) {
+      width: 820px;
+      max-width: none;
+    }
+  }
+  .mapa-leyenda {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #c9ccd2;
+    font-size: 0.95rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .muestra {
+    width: 22px;
+    height: 14px;
+    border: 2px dashed #ff3b30;
+    background: rgba(255, 59, 48, 0.3);
+    border-radius: 3px;
+  }
+
+  .cuerpo {
+    max-width: 880px;
+    padding-block: clamp(36px, 6vw, 64px);
+  }
+  .impacto {
+    background: #fff7d6;
+    border-left: 6px solid var(--amarillo);
+    border-radius: 0 var(--radio) var(--radio) 0;
+    padding: 16px 22px;
+  }
+  .impacto p:last-child {
+    margin: 6px 0 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .prosa {
+    margin-top: 32px;
+  }
+  .prosa :global(h2) {
+    font-size: 1.9rem;
+    margin: 2em 0 0.5em;
+  }
+  .prosa :global(h3) {
+    font-size: 1.35rem;
+    margin: 1.6em 0 0.4em;
+  }
+  .prosa :global(blockquote) {
+    margin: 1.2em 0;
+    padding: 12px 18px;
+    background: #fbe7ec;
+    border-left: 5px solid var(--rojo);
+    border-radius: 0 10px 10px 0;
+  }
+  .prosa :global(blockquote p) {
+    margin: 0;
+  }
+  .prosa :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.97rem;
+    display: block;
+    overflow-x: auto;
+  }
+  .prosa :global(th),
+  .prosa :global(td) {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--borde);
+    vertical-align: top;
+  }
+  .prosa :global(th) {
+    background: #e9e4d8;
+  }
+  .prosa :global(code) {
+    background: #e9e4d8;
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-size: 0.9em;
+  }
+
+  .fotos,
+  .documentos {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 2px solid var(--borde);
+  }
+  .fotos h2,
+  .documentos h2 {
+    font-size: 1.9rem;
+    margin: 0 0 24px;
+  }
+  .fotos-grid {
+    display: grid;
+    gap: 36px;
+  }
+  .documentos ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .documentos a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    color: var(--tinta);
+    text-decoration: none;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .documentos a:hover {
+    border-color: var(--rojo);
+  }
+  .pdf {
+    flex: none;
+    background: var(--rojo);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+</style>

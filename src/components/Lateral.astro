@@ -1,0 +1,152 @@
+---
+/**
+ * Vista lateral del Superbloque 38: bloque de apartamentos + torre de escaleras
+ * unida por puentes en los pisos de pasillo.
+ */
+import edificio from '../data/edificio.json';
+import { hash } from '../lib/hash';
+import type { Zona } from '../lib/constantes';
+
+interface Props {
+  id?: string;
+  resaltar?: { zonas: Zona[]; pisos?: number[] };
+  class?: string;
+}
+
+const { id = 'lateral', resaltar, class: className } = Astro.props;
+const b = edificio.building;
+
+const FLOORS = b.grid.floors;
+const FLOOR_H = 34;
+const COL_W = 40;
+const BX = 20;
+const BLOCK_W = COL_W * 3;
+const GAP = 44;
+const TX = BX + BLOCK_W + GAP;
+const TOWER_W = 64;
+const BY = 34;
+const W = TX + TOWER_W + 20;
+const H = BY + FLOORS * FLOOR_H + 22;
+
+const PALETA = ['#3B6FB6', '#9FCBE6', '#4A90D9', '#E3A8C4', '#C4405E'];
+
+const filas = Array.from({ length: FLOORS }, (_, r) => {
+  const piso = FLOORS - r;
+  const info = b.floor_palette.find((f) => f.floor === piso)!;
+  return { r, piso, y: BY + r * FLOOR_H, pasillo: info.type === 'corridor' };
+});
+
+const modulos = filas.flatMap((f) =>
+  [0, 1, 2].map((c) => {
+    const h = hash(f.r + 40, c);
+    return {
+      x: BX + c * COL_W,
+      y: f.y,
+      color: h < 0.62 ? PALETA[Math.floor(hash(c + 3, f.r) * PALETA.length)] : '#eef0f2',
+      ventana: hash(f.r, c + 21) < 0.14,
+    };
+  }),
+);
+
+// Paneles de la torre: cada 2 pisos, algunos con color en la parte baja
+const PANEL_H = FLOOR_H * 2;
+const paneles = Array.from({ length: Math.ceil(FLOORS / 2) }, (_, i) => {
+  const y = BY + FLOORS * FLOOR_H - (i + 1) * PANEL_H;
+  const top = Math.max(y, BY);
+  const h = hash(i, 77);
+  const color = h < 0.2 ? '#9FCBE6' : h < 0.35 ? '#C4405E' : h < 0.48 ? '#3B6FB6' : h < 0.58 ? '#3A9A5E' : null;
+  return { y: top, h: y + PANEL_H - top, color };
+});
+
+const zonas = new Set(resaltar?.zonas ?? []);
+const pisosSel = resaltar?.pisos?.length ? new Set(resaltar.pisos) : null;
+const filasSel = filas.filter((f) => !pisosSel || pisosSel.has(f.piso));
+let filasPasillo = filasSel.filter((f) => f.pasillo);
+if (!filasPasillo.length) filasPasillo = filas.filter((f) => f.pasillo);
+const ySel = filasSel.length ? filasSel[0].y : BY;
+const hSel = filasSel.length ? filasSel[filasSel.length - 1].y + FLOOR_H - ySel : FLOORS * FLOOR_H;
+---
+
+<svg class:list={['lateral', className]} viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby={`${id}-title`}>
+  <title id={`${id}-title`}>Vista lateral del {b.name}: bloque de apartamentos y torre de escaleras unidos por pasillos</title>
+
+  <!-- Bloque -->
+  <rect x={BX - 3} y={BY - 3} width={BLOCK_W + 6} height={FLOORS * FLOOR_H + 6} fill="#9a9ca3" />
+  {modulos.map((m) => (
+    <g>
+      <rect x={m.x + 2} y={m.y + 2} width={COL_W - 4} height={FLOOR_H - 4} fill={m.color} />
+      {m.ventana && (
+        <g fill="#fff" stroke="#1d1f24" stroke-width="1">
+          <rect x={m.x + 10} y={m.y + 8} width="9" height="11" />
+          <rect x={m.x + 21} y={m.y + 8} width="9" height="11" />
+        </g>
+      )}
+    </g>
+  ))}
+  <rect x={BX + 20} y={BY - 16} width={BLOCK_W - 40} height="13" fill="#d7d9dd" stroke="#6b6e75" />
+
+  <!-- Puentes en pisos de pasillo -->
+  {filas.filter((f) => f.pasillo).map((f) => (
+    <g>
+      <rect x={BX + BLOCK_W + 3} y={f.y + 14} width={GAP - 6} height="8" fill="#c3c5c9" stroke="#1d1f24" stroke-width="1" />
+      <path d={`M${BX + BLOCK_W + 3} ${f.y + 10}H${TX - 3}`} stroke="#1d1f24" stroke-width="1.5" stroke-dasharray="3 2" />
+    </g>
+  ))}
+
+  <!-- Torre de escaleras -->
+  <rect x={TX} y={BY - 6} width={TOWER_W} height={FLOORS * FLOOR_H + 6} fill="#eef0f2" stroke="#6b6e75" stroke-width="2" />
+  {paneles.map((p) => (
+    <g>
+      {p.color && <rect x={TX + 4} y={p.y + p.h * 0.55} width={TOWER_W - 8} height={p.h * 0.45 - 4} fill={p.color} />}
+      <rect x={TX + 4} y={p.y + 4} width={TOWER_W - 8} height={p.h - 8} fill="none" stroke="#6b6e75" stroke-width="1.5" />
+      <path
+        d={`M${TX + 4} ${p.y + 4}L${TX + TOWER_W - 4} ${p.y + p.h - 4}M${TX + TOWER_W - 4} ${p.y + 4}L${TX + 4} ${p.y + p.h - 4}`}
+        stroke="#6b6e75"
+        stroke-width="1.5"
+      />
+    </g>
+  ))}
+
+  <rect x={6} y={BY + FLOORS * FLOOR_H + 4} width={W - 12} height="4" rx="2" fill="#e9e9e9" />
+
+  {zonas.size > 0 && (
+    <g class="resaltado">
+      {zonas.has('escaleras') && (
+        <g><title>Escaleras</title><rect x={TX - 3} y={ySel} width={TOWER_W + 6} height={hSel} /></g>
+      )}
+      {zonas.has('pasillos') && (
+        <g>
+          <title>Pasillos</title>
+          {filasPasillo.map((f) => <rect x={BX + BLOCK_W} y={f.y + 6} width={GAP} height="20" />)}
+        </g>
+      )}
+      {zonas.has('columnas') && (
+        <g>
+          <title>Columnas (esquemático)</title>
+          {[BX, BX + BLOCK_W].map((x) => <rect x={x - 5} y={ySel} width="10" height={hSel} />)}
+        </g>
+      )}
+    </g>
+  )}
+</svg>
+
+<style>
+  .lateral {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .resaltado rect {
+    fill: rgba(255, 59, 48, 0.22);
+    stroke: #ff3b30;
+    stroke-width: 3;
+    stroke-dasharray: 8 5;
+    animation: pulso 1.8s ease-in-out infinite;
+  }
+  @keyframes pulso {
+    50% { fill: rgba(255, 59, 48, 0.06); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .resaltado rect { animation: none; }
+  }
+</style>

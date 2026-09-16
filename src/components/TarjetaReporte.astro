@@ -1,0 +1,119 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import { ESTADO_COLOR, ZONA_ETIQUETA, formatoFecha } from '../lib/constantes';
+
+interface Props {
+  reporte: CollectionEntry<'reportes'>;
+}
+
+const { reporte } = Astro.props;
+const d = reporte.data;
+const portada = d.fotos.despues[0] ?? d.fotos.antes[0];
+---
+
+<article class="tarjeta" style={`--acento: ${ESTADO_COLOR[d.status]}`}>
+  <a href={`/reportes/${reporte.id}/`} class="enlace">
+    <div class="portada">
+      {portada ? (
+        <Image src={portada.src} alt={portada.pie ?? d.title} widths={[400, 700]} sizes="(max-width: 700px) 100vw, 380px" loading="lazy" />
+      ) : (
+        <div class="sin-foto" aria-hidden="true"></div>
+      )}
+      <span class="estado">{d.status}</span>
+    </div>
+    <div class="cuerpo">
+      <p class="meta">
+        <time datetime={d.date.toISOString()}>{formatoFecha(d.date)}</time> · {d.area}
+      </p>
+      <h3>{d.title}</h3>
+      {d.resumen && <p class="resumen">{d.resumen}</p>}
+      {d.zonas.length > 0 && (
+        <ul class="zonas">
+          {d.zonas.map((z) => <li>{ZONA_ETIQUETA[z]}</li>)}
+        </ul>
+      )}
+    </div>
+  </a>
+</article>
+
+<style>
+  .tarjeta {
+    background: var(--tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-top: 6px solid var(--acento);
+  }
+  .tarjeta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px rgba(20, 22, 26, 0.12);
+  }
+  .enlace {
+    color: inherit;
+    text-decoration: none;
+    display: block;
+    height: 100%;
+  }
+  .portada {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background: var(--noche-2);
+  }
+  .portada :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .sin-foto {
+    height: 100%;
+    background: repeating-linear-gradient(135deg, #2a2d34 0 12px, #23262c 12px 24px);
+  }
+  .estado {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: var(--acento);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .cuerpo {
+    padding: 18px 20px 22px;
+  }
+  .meta {
+    margin: 0 0 6px;
+    font-size: 0.85rem;
+    color: var(--texto-suave);
+  }
+  h3 {
+    margin: 0 0 8px;
+    font-size: 1.35rem;
+  }
+  .resumen {
+    margin: 0 0 12px;
+    color: var(--texto-suave);
+    font-size: 0.97rem;
+  }
+  .zonas {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+  }
+  .zonas li {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: #efebe2;
+  }
+</style>
