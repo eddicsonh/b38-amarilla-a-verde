@@ -1,8 +1,8 @@
-# 🍀 Trébol Verde
+# 🍀 Bloque 38 de amarillo a Verde
 
 **Seguimiento público de obras de Residencias El Trébol — Bloques 38 y 39, Zona F, 23 de Enero (Caracas).**
 
-Trébol Verde es un sitio web estático donde se publican los diagnósticos, reparaciones y mejoras del edificio, con fotos del *antes* y el *después* y sus soportes en PDF. Su objetivo es documentar, de forma transparente para toda la comunidad, el camino desde la **etiqueta amarilla** (riesgo mitigado / habitable con condiciones) hasta la **etiqueta verde** (estructura segura / mantenimiento al día).
+TBloque 38 de amarillo a Verde es un sitio web estático donde se publican los diagnósticos, reparaciones y mejoras del edificio, con fotos del *antes* y el *después* y sus soportes en PDF. Su objetivo es documentar, de forma transparente para toda la comunidad, el camino desde la **etiqueta amarilla** (riesgo mitigado / habitable con condiciones) hasta la **etiqueta verde** (estructura segura / mantenimiento al día).
 
 | | |
 | --- | --- |
