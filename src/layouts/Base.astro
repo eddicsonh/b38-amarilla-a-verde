@@ -1,15 +1,15 @@
 ---
 import '@fontsource-variable/archivo/wdth.css';
 import '../styles/global.css';
-import edificio from '../data/edificio.json';
+import { b } from '../lib/edificio';
 
 interface Props {
   title?: string;
   description?: string;
 }
 
-const nombre = 'Bloque 38 · 23 de Enero';
-const { title, description = `Informes de avances y reparaciones del ${edificio.building.name}, ${edificio.building.location}.` } =
+const nombre = `${b.alias} · ${b.name}`;
+const { title, description = `Informes de avances y reparaciones de ${b.alias} (${b.name}), ${b.location}.` } =
   Astro.props;
 const tituloCompleto = title ? `${title} | ${nombre}` : `${nombre} — Informes del edificio`;
 const ruta = Astro.url.pathname;
@@ -38,7 +38,7 @@ const ruta = Astro.url.pathname;
               <path d="M32 8 53 44H11Z" /><path d="M32 56 11 20h42Z" />
             </g>
           </svg>
-          <span><strong>Bloque 38</strong> <span class="marca-zona">Zona F · 23 de Enero</span></span>
+          <span><strong>{b.name}</strong> <span class="marca-zona">{b.alias} · Zona F</span></span>
         </a>
         <nav aria-label="Principal">
           <a href="/#etiqueta" aria-current={ruta === '/' ? 'page' : undefined}>Etiqueta</a>
@@ -54,8 +54,8 @@ const ruta = Astro.url.pathname;
     <footer class="pie">
       <div class="contenedor pie-interior">
         <p>
-          <strong>{edificio.building.name}</strong><br />
-          {edificio.building.location}
+          <strong>{b.alias}</strong> · {b.name}<br />
+          {b.location}
         </p>
         <p class="pie-nota">Sitio comunitario de seguimiento de obras. Actualizado por el equipo de mantenimiento del bloque.</p>
       </div>

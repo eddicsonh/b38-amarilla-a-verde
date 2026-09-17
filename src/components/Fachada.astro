@@ -1,14 +1,19 @@
 ---
 /**
- * Fachada frontal del Superbloque 38 en SVG, generada en el build a partir de
- * src/data/edificio.json. No envía JavaScript al navegador.
+ * Ilustración en perspectiva 3/4 de Residencias El Trébol (Bloques 38 y 39)
+ * al atardecer, generada en el build desde src/data/edificio.json.
+ * No envía JavaScript al navegador.
+ *
+ * Todo el edificio se dibuja en coordenadas locales de cada cara (u = a lo
+ * largo, y = hacia abajo desde la azotea, w = profundidad) y se proyecta con
+ * matrices afines, así los resaltados de zonas/pisos encajan en la geometría.
  */
-import edificio from '../data/edificio.json';
+import { b, etiquetaPiso, niveles } from '../lib/edificio';
 import { hash } from '../lib/hash';
 import type { Zona } from '../lib/constantes';
 
 interface Props {
-  /** Prefijo para los ids internos (si hay más de una fachada en la página) */
+  /** Prefijo para los ids internos (si hay más de una ilustración en la página) */
   id?: string;
   /** Zonas y pisos a resaltar */
   resaltar?: { zonas: Zona[]; pisos?: number[] };
@@ -16,255 +21,504 @@ interface Props {
   class?: string;
 }
 
-const { id = 'fachada', resaltar, mostrarPisos = false, class: className } = Astro.props;
-const b = edificio.building;
+const { id = 'edificio', resaltar, mostrarPisos = false, class: className } = Astro.props;
+const pal = b.palette;
+const u = (s: string) => `url(#${id}-${s})`;
 
-const FLOORS = b.grid.floors;
+// ---- Dimensiones (unidades locales) ----
 const COLS = b.grid.total_columns;
-const COL_W = 48;
-const FLOOR_H = 34;
-const PAD_L = mostrarPisos ? 44 : 20;
-const PAD_R = 20;
-const ROOF_H = 58;
-const W = PAD_L + COLS * COL_W + PAD_R;
-const H = ROOF_H + FLOORS * FLOOR_H + 22;
-const bx = PAD_L;
-const by = ROOF_H;
+const BW = 28; // ancho de módulo
+const FL = 30; // alto de piso
+const PB_H = 44; // alto de planta baja (pilotes)
+const D = 74; // profundidad de la losa
+const WF = COLS * BW;
+const TOWER_OUT = 14; // cuánto sobresale la torre de la fachada
+const TOWER_UP = 46; // cuánto sube la torre sobre la azotea
+
+// Proyección: eje u (fachada), eje w (profundidad), y vertical
+const EU = { x: 1, y: 0.13 };
+const EW = { x: 0.6, y: -0.4 };
+
+// Escena
+const VW = 1600;
+const VH = 1000;
+const S = 0.95;
+const OX = 350;
+const OY = 330;
+
+const filas = (() => {
+  let y = 0;
+  return niveles.map((n) => {
+    const h = n.piso === 0 ? PB_H : FL;
+    const f = { ...n, y, h };
+    y += h;
+    return f;
+  });
+})();
+const HF = filas.reduce((a, f) => a + f.h, 0);
 
 const cores = b.grid.elevator_cores;
 const coreCols = new Set(cores.map((c) => c.column_index));
-const coreColors = b.core_palettes as Record<string, string[]>;
+const bahias = Array.from({ length: COLS }, (_, c) => c).filter((c) => !coreCols.has(c));
 
-// Filas de arriba (piso 15) hacia abajo (piso 1)
-const filas = Array.from({ length: FLOORS }, (_, r) => {
-  const piso = FLOORS - r;
-  const info = b.floor_palette.find((f) => f.floor === piso)!;
-  return { r, piso, y: by + r * FLOOR_H, color: info.color_hex, pasillo: info.type === 'corridor' };
-});
+// Matrices afines
+const mFrente = (w = 0) => `matrix(${EU.x} ${EU.y} 0 1 ${EW.x * w} ${EW.y * w})`;
+const mLado = (u0: number) => `matrix(${EW.x} ${EW.y} 0 1 ${EU.x * u0} ${EU.y * u0})`;
+const mTecho = (y0 = 0) => `matrix(${EU.x} ${EU.y} ${EW.x} ${EW.y} 0 ${y0})`;
+/** Punto proyectado en coordenadas locales escaladas */
+const P = (uu: number, y: number, w = 0) => ({ x: uu * EU.x + w * EW.x, y: uu * EU.y + w * EW.y + y });
 
-// Segmentos horizontales de cada fila (sin los núcleos)
-const segmentos: { x: number; w: number }[] = [];
-let inicio = 0;
-for (let c = 0; c <= COLS; c++) {
-  if (c === COLS || coreCols.has(c)) {
-    if (c > inicio) segmentos.push({ x: bx + inicio * COL_W, w: (c - inicio) * COL_W });
-    inicio = c + 1;
-  }
-}
+// ---- Contenido de la fachada ----
+const filasApto = filas.filter((f) => !f.pasillo);
+const filasPasillo = filas.filter((f) => f.pasillo && f.piso !== 0);
+const pb = filas.find((f) => f.piso === 0);
 
-function colorModulo(r: number, c: number, base: string) {
-  if (hash(r, c) >= 0.52) return null;
-  return hash(c, r + 99) < 0.7
-    ? base
-    : b.accent_palette[Math.floor(hash(r + 7, c) * b.accent_palette.length)];
-}
+const paneles = filasApto.flatMap((f) =>
+  bahias
+    .filter((c) => hash(f.r, c) < 0.6)
+    .map((c) => ({
+      x: c * BW,
+      y: f.y,
+      color: pal.panels[(c * 3 + f.r + Math.floor(hash(c, 99) * 3)) % pal.panels.length],
+    })),
+);
+const encendidas = filasApto.flatMap((f) =>
+  bahias.filter((c) => hash(c + 50, f.r + 11) < 0.16).map((c) => ({ x: c * BW, y: f.y })),
+);
+const pilastras = bahias.filter((c) => c % 2 === 0).map((c) => c * BW);
+/** Columnas estructurales resaltables (esquemático: una de cada dos pilastras) */
+const columnas = pilastras.filter((_, i) => i % 2 === 0);
 
-// Estrella y arcos
-const star = b.artistic_features.roof_star;
-const sx = bx + star.position_column * COL_W + COL_W / 2;
-const sy = by - 30;
+// ---- Entorno ----
+const nubes = [
+  { x: 260, y: 150, rx: 150, ry: 18 },
+  { x: 420, y: 178, rx: 90, ry: 11 },
+  { x: 1180, y: 120, rx: 190, ry: 20 },
+  { x: 1400, y: 160, rx: 110, ry: 12 },
+];
+const estrellasCielo = Array.from({ length: 40 }, (_, i) => ({
+  x: Math.round(hash(i, 3) * VW),
+  y: Math.round(hash(i, 5) * 150),
+  r: hash(i, 7) < 0.2 ? 1.6 : 0.9,
+}));
+// Silueta de otros superbloques en las colinas
+const lejanos = [
+  { x: 40, y: 640, w: 170, h: 95 },
+  { x: 1330, y: 615, w: 210, h: 120 },
+  { x: 1245, y: 660, w: 70, h: 60 },
+];
+const lucesLejanas = lejanos.flatMap((e, i) =>
+  Array.from({ length: 26 }, (_, k) => ({
+    x: e.x + 8 + Math.floor(hash(i, k) * (e.w - 16)),
+    y: e.y + 8 + Math.floor(hash(k, i + 9) * (e.h - 16)),
+  })),
+);
+const arboles = [
+  { x: 150, y: 930, r: 88 },
+  { x: 290, y: 965, r: 62 },
+  { x: 700, y: 985, r: 54 },
+  { x: 1290, y: 945, r: 80 },
+  { x: 1450, y: 910, r: 70 },
+];
+const faroles = [480, 930, 1180];
+
+// Estrella metálica sobre la azotea
+const star = P((b.roof_star.position_column + 0.5) * BW, -8, D / 2);
 const tri = (up: boolean, rad: number) => {
   const a0 = up ? -Math.PI / 2 : Math.PI / 2;
-  return (
-    [0, 1, 2]
-      .map((i) => {
-        const a = a0 + (i * 2 * Math.PI) / 3;
-        return `${(sx + rad * Math.cos(a)).toFixed(1)},${(sy + rad * Math.sin(a)).toFixed(1)}`;
-      })
-      .join(' ')
-  );
+  return [0, 1, 2]
+    .map((i) => {
+      const a = a0 + (i * 2 * Math.PI) / 3;
+      return `${(rad * Math.cos(a)).toFixed(1)},${(rad * Math.sin(a)).toFixed(1)}`;
+    })
+    .join(' ');
 };
-const arcos = Array.from({ length: star.arcs }, (_, i) => {
-  const ex = bx + 7.2 * COL_W;
-  const ey = by + 5.2 * FLOOR_H + i * 28;
-  return `M${sx - 6 + i * 6} ${sy + 18} C${sx - 40 - i * 10} ${by + 8 * FLOOR_H + i * 20} ${bx + 13 * COL_W} ${by + 9.5 * FLOOR_H + i * 26} ${ex} ${ey}`;
-});
 
-// Resaltado de zonas
+// ---- Resaltado ----
 const zonas = new Set(resaltar?.zonas ?? []);
 const pisosSel = resaltar?.pisos?.length ? new Set(resaltar.pisos) : null;
 const filasSel = filas.filter((f) => !pisosSel || pisosSel.has(f.piso));
-let filasPasillo = filasSel.filter((f) => f.pasillo);
-if (!filasPasillo.length) filasPasillo = filas.filter((f) => f.pasillo);
-
-/** Agrupa filas consecutivas en bandas verticales continuas */
+let filasPasilloSel = filasSel.filter((f) => f.pasillo);
+if (!filasPasilloSel.length) filasPasilloSel = filas.filter((f) => f.pasillo);
 function bandas(fs: typeof filas) {
   const out: { y: number; h: number }[] = [];
   for (const f of fs) {
     const last = out[out.length - 1];
-    if (last && Math.abs(last.y + last.h - f.y) < 0.5) last.h += FLOOR_H;
-    else out.push({ y: f.y, h: FLOOR_H });
+    if (last && Math.abs(last.y + last.h - f.y) < 0.5) last.h += f.h;
+    else out.push({ y: f.y, h: f.h });
   }
   return out;
 }
 const bandasSel = bandas(filasSel);
-const lineasColumnas = Array.from({ length: Math.floor(COLS / 4) + 1 }, (_, k) => bx + k * 4 * COL_W);
+const resaltaTorres = zonas.has('escaleras') || zonas.has('ascensores');
 ---
 
 <svg
-  class:list={['fachada', className]}
-  viewBox={`0 0 ${W} ${H}`}
+  class:list={['edificio', className]}
+  viewBox={`0 0 ${VW} ${VH}`}
+  preserveAspectRatio="xMidYMid slice"
   role="img"
   aria-labelledby={`${id}-title`}
-  preserveAspectRatio="xMidYMid meet"
 >
-  <title id={`${id}-title`}>Ilustración de la fachada frontal del {b.name}: {FLOORS} pisos, {COLS} módulos y dos núcleos de escaleras y ascensores</title>
+  <title id={`${id}-title`}>
+    Ilustración de {b.alias} ({b.name}) al atardecer: losa de planta baja y {niveles.length - 1} pisos con paneles de color,
+    pasillos con barandas azules, {cores.length} torres de ascensores y la estrella metálica en la azotea.
+  </title>
   <defs>
-    <pattern id={`${id}-apto`} width={COL_W} height={FLOOR_H} patternUnits="userSpaceOnUse" x={bx} y={by}>
-      <rect width={COL_W} height={FLOOR_H} fill="none" stroke="#9a9ca3" stroke-width="4" />
-      <g fill="#fff" stroke="#1d1f24" stroke-width="1.2">
-        <rect x="7" y="7" width="13" height="12" />
-        <rect x="28" y="7" width="13" height="12" />
-      </g>
-      <path d="M13.5 7v12M34.5 7v12" stroke="#1d1f24" stroke-width="1" />
+    <linearGradient id={`${id}-cielo`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d2026" />
+      <stop offset=".12" stop-color="#262b52" />
+      <stop offset=".26" stop-color="#5d4583" />
+      <stop offset=".37" stop-color="#c7708a" />
+      <stop offset=".45" stop-color="#f09a6a" />
+      <stop offset=".52" stop-color="#fbc987" />
+    </linearGradient>
+    <radialGradient id={`${id}-sol`}>
+      <stop offset="0" stop-color="#fff1c4" />
+      <stop offset=".35" stop-color="#ffc978" stop-opacity=".8" />
+      <stop offset="1" stop-color="#ff9d5c" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id={`${id}-avila`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a4a82" />
+      <stop offset="1" stop-color="#3a3560" />
+    </linearGradient>
+    <linearGradient id={`${id}-colinas`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f3050" />
+      <stop offset="1" stop-color="#232538" />
+    </linearGradient>
+    <linearGradient id={`${id}-suelo`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3642" />
+      <stop offset="1" stop-color="#1d2026" />
+    </linearGradient>
+    <!-- Luz cálida del atardecer sobre la fachada (de izquierda a derecha) -->
+    <linearGradient id={`${id}-luz`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={WF} y2="0">
+      <stop offset="0" stop-color="#ffb070" stop-opacity=".22" />
+      <stop offset=".6" stop-color="#ffb070" stop-opacity=".05" />
+      <stop offset="1" stop-color="#3a2f5c" stop-opacity=".18" />
+    </linearGradient>
+    <linearGradient id={`${id}-base`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={HF}>
+      <stop offset=".6" stop-color="#1d1b2c" stop-opacity="0" />
+      <stop offset="1" stop-color="#1d1b2c" stop-opacity=".35" />
+    </linearGradient>
+    <radialGradient id={`${id}-halo`}>
+      <stop offset="0" stop-color="#ffd970" stop-opacity=".9" />
+      <stop offset="1" stop-color="#ffd970" stop-opacity="0" />
+    </radialGradient>
+    <pattern id={`${id}-ventana`} width={BW} height={FL} patternUnits="userSpaceOnUse">
+      <rect x="6" y="7" width={BW - 12} height="13" fill="#262a35" />
+      <path d={`M9 7v13M12 7v13M15 7v13M18 7v13M6 13.5h${BW - 12}`} stroke="#7c8190" stroke-width=".8" />
+      <rect x="5" y="20" width={BW - 10} height="1.6" fill="#fff" opacity=".7" />
     </pattern>
-    <pattern id={`${id}-reja`} width="5" height="5" patternUnits="userSpaceOnUse">
-      <rect width="5" height="5" fill="#d9dadd" />
-      <rect x=".5" y=".5" width="4" height="4" fill="none" stroke="#1d1f24" stroke-width=".9" />
+    <pattern id={`${id}-reja`} width="3" height={FL} patternUnits="userSpaceOnUse">
+      <path d={`M1.5 0v${FL}`} stroke="#6b5a3c" stroke-width=".9" />
     </pattern>
-    <pattern id={`${id}-pasillo`} width={COL_W * 3} height={FLOOR_H} patternUnits="userSpaceOnUse" x={bx} y={by}>
-      <rect width={COL_W * 3} height={FLOOR_H} fill="#c3c5c9" />
-      <rect x="8" y="4" width="13" height="26" fill="#5b4a3c" />
-      <rect x="58" y="5" width="30" height="5" fill="#fff" stroke="#1d1f24" stroke-width=".8" />
-      <rect x="108" y="4" width="13" height="26" fill="#5b4a3c" />
-      <rect y="17" width={COL_W * 3} height="15" fill={`url(#${id}-reja)`} />
-      <path d={`M0 17H${COL_W * 3}`} stroke="#1d1f24" stroke-width="2" />
-      <path d={`M0 0V${FLOOR_H}M${COL_W} 0V${FLOOR_H}M${COL_W * 2} 0V${FLOOR_H}`} stroke="#9a9ca3" stroke-width="3" />
-    </pattern>
+    <filter id={`${id}-brillo`} x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" />
+    </filter>
   </defs>
 
-  <!-- Estructura base -->
-  <rect x={bx - 4} y={by - 4} width={COLS * COL_W + 8} height={FLOORS * FLOOR_H + 8} fill="#9a9ca3" />
+  <!-- ===== Cielo y fondo ===== -->
+  <rect width={VW} height={VH} fill={u('cielo')} />
+  <g fill="#fff" opacity=".7">
+    {estrellasCielo.map((e) => <circle cx={e.x} cy={e.y} r={e.r} />)}
+  </g>
+  <circle cx="1330" cy="330" r="240" fill={u('sol')} />
+  <g fill="#ffc4a8" opacity=".35">
+    {nubes.map((n) => <ellipse cx={n.x} cy={n.y + 60} rx={n.rx} ry={n.ry} />)}
+  </g>
+  <!-- El Ávila -->
+  <path
+    d="M0 470 C120 430 190 380 300 365 C390 353 430 300 520 292 C600 285 650 325 740 320 C820 315 880 250 980 242 C1080 234 1120 300 1220 310 C1320 320 1380 285 1470 300 C1530 310 1570 330 1600 340 V760 H0Z"
+    fill={u('avila')}
+  />
+  <path
+    d="M300 365 C390 353 430 300 520 292 C600 285 650 325 740 320 C820 315 880 250 980 242 C1080 234 1120 300 1220 310"
+    fill="none"
+    stroke="#ffb98a"
+    stroke-opacity=".35"
+    stroke-width="3"
+  />
+  <!-- Colinas con otros superbloques -->
+  <path d="M0 700 C200 640 380 660 560 700 C760 745 1000 690 1200 660 C1380 632 1500 640 1600 650 V1000 H0Z" fill={u('colinas')} />
+  <g fill="#262840">
+    {lejanos.map((e) => <rect x={e.x} y={e.y} width={e.w} height={e.h} />)}
+  </g>
+  <g fill="#ffcf73">
+    {lucesLejanas.map((l) => <rect x={l.x} y={l.y} width="4" height="3" opacity=".75" />)}
+  </g>
 
-  {filas.map((f) => (
-    <g>
-      {f.pasillo ? (
-        segmentos.map((s) => <rect x={s.x} y={f.y} width={s.w} height={FLOOR_H} fill={`url(#${id}-pasillo)`} />)
-      ) : (
-        <>
-          {segmentos.map((s) => <rect x={s.x} y={f.y} width={s.w} height={FLOOR_H} fill="#eef0f2" />)}
-          {Array.from({ length: COLS }, (_, c) => c)
-            .filter((c) => !coreCols.has(c))
-            .map((c) => {
-              const col = colorModulo(f.r, c, f.color);
-              return col && <rect x={bx + c * COL_W} y={f.y} width={COL_W} height={FLOOR_H} fill={col} />;
-            })}
-          {segmentos.map((s) => <rect x={s.x} y={f.y} width={s.w} height={FLOOR_H} fill={`url(#${id}-apto)`} />)}
-        </>
+  <!-- ===== Suelo ===== -->
+  <path d={`M0 ${VH} V790 C400 770 1100 830 ${VW} 870 V${VH}Z`} fill={u('suelo')} />
+
+  <g transform={`translate(${OX} ${OY}) scale(${S})`}>
+    <!-- Sombra proyectada -->
+    <path
+      d={`M${P(0, HF).x} ${P(0, HF).y} L${P(WF, HF).x} ${P(WF, HF).y} L${P(WF, HF, D).x + 160} ${P(WF, HF, D).y + 30} L${P(0, HF, D).x - 60} ${P(0, HF, D).y + 30}Z`}
+      fill="#000"
+      opacity=".22"
+    />
+
+    <!-- ===== Cara lateral (en sombra) ===== -->
+    <g transform={mLado(WF)}>
+      <rect width={D} height={HF} fill="#a79fbc" />
+      {filas.map((f) =>
+        f.pasillo ? (
+          <g>
+            <rect y={f.y + 2} width={D} height={f.h - 2} fill="#4b4863" />
+            {f.piso !== 0 && <rect y={f.y + f.h * 0.5} width={D} height={f.h * 0.5} fill="#2562b0" />}
+          </g>
+        ) : (
+          <g fill="#3a3a52">
+            <rect x="18" y={f.y + 9} width="10" height="12" />
+            <rect x="46" y={f.y + 9} width="10" height="12" />
+          </g>
+        ),
       )}
+      {filas.map((f) => <rect y={f.y + f.h - 2} width={D} height="2.5" fill="#c3bcd4" />)}
+      <rect width={D} height={HF} fill={u('base')} />
     </g>
-  ))}
 
-  <!-- Núcleos de escaleras y ascensores -->
-  {cores.map((core) => {
-    const x = bx + core.column_index * COL_W;
-    const pal = coreColors[core.type] ?? [];
-    return (
-      <g>
-        <rect x={x - 3} y={by - 12} width={COL_W + 6} height={FLOORS * FLOOR_H + 12} fill="#dcdee2" stroke="#6b6e75" stroke-width="1.5" />
-        {filas.map((f) => (
-          <rect x={x + 7} y={f.y + 3} width={COL_W - 14} height={FLOOR_H - 6} rx="8" fill={pal[f.r] ?? '#fff'} stroke="#2a2c31" stroke-width="1" />
-        ))}
+    <!-- ===== Azotea ===== -->
+    <g transform={mTecho()}>
+      <rect width={WF} height={D} fill="#d9cfc4" />
+      <rect width={WF} height="4" fill="#efe6da" />
+      <rect x={WF - 4} width="4" height={D} fill="#b9aebf" />
+    </g>
+
+    <!-- Tanques en la azotea -->
+    {b.roof_tanks.map((t) => {
+      const u0 = t.column * BW;
+      const w0 = D * 0.35;
+      const tw = t.width * BW;
+      const tH = 18;
+      return (
+        <g>
+          <g transform={mTecho(-tH)}><rect x={u0} y={w0} width={tw} height="20" fill="#d6d2cc" /></g>
+          <g transform={`matrix(${EU.x} ${EU.y} 0 1 ${EW.x * w0} ${EW.y * w0})`}><rect x={u0} y={-tH} width={tw} height={tH} fill="#bdb6ad" /></g>
+          <g transform={mLado(u0 + tw)}><rect x={w0} y={-tH} width="20" height={tH} fill="#8f879c" /></g>
+        </g>
+      );
+    })}
+
+    <!-- ===== Fachada principal ===== -->
+    <g transform={mFrente()}>
+      <rect width={WF} height={HF} fill={pal.wall} />
+
+      <!-- Pisos de apartamentos -->
+      {paneles.map((p) => <rect x={p.x + 1.5} y={p.y + 2} width={BW - 3} height={FL - 4} fill={p.color} />)}
+      {filasApto.map((f) => <rect width={WF} y={f.y} height={FL} fill={u('ventana')} />)}
+      {encendidas.map((e) => (
+        <g>
+          <rect x={e.x + 6} y={e.y + 7} width={BW - 12} height="13" fill="#ffcf73" />
+          <rect x={e.x + 6} y={e.y + 7} width={BW - 12} height="13" fill={u('reja')} />
+        </g>
+      ))}
+
+      <!-- Pilastras verticales -->
+      {pilastras.map((x) => (
+        <g>
+          <rect x={x - 1.5} width="3" height={HF} fill="#fffaf2" />
+          <rect x={x + 1.5} width="1.2" height={HF} fill="#000" opacity=".08" />
+        </g>
+      ))}
+
+      <!-- Pasillos: galería en sombra + baranda azul -->
+      {filasPasillo.map((f) => (
+        <g>
+          <rect width={WF} y={f.y} height={f.h} fill="#56546e" />
+          {bahias.filter((c) => c % 2 === 1).map((c) => (
+            <rect x={c * BW + 8} y={f.y + 4} width="9" height={f.h * 0.5} fill="#3a3346" />
+          ))}
+          {bahias.filter((c) => hash(c, f.piso + 200) < 0.18).map((c) => (
+            <rect x={c * BW + 8} y={f.y + 5} width="9" height="5" fill="#ffcf73" opacity=".85" />
+          ))}
+          <rect width={WF} y={f.y + f.h * 0.48} height={f.h * 0.52} fill={pal.corridor_parapet} />
+          <rect width={WF} y={f.y + f.h * 0.48} height="2" fill="#8cc0f7" />
+          {pilastras.map((x) => <rect x={x - 1.5} y={f.y} width="3" height={f.h * 0.48} fill="#e8e2da" />)}
+        </g>
+      ))}
+
+      <!-- Planta baja con pilotes -->
+      {pb && (
+        <g>
+          <rect width={WF} y={pb.y} height={pb.h} fill="#2e2c3b" />
+          {bahias.filter((c) => hash(c, 321) < 0.35).map((c) => (
+            <rect x={c * BW + 3} y={pb.y + 14} width={BW - 6} height={pb.h - 16} fill="#ffc86b" opacity=".55" />
+          ))}
+          {pilastras.map((x) => (
+            <g>
+              <rect x={x - 4} y={pb.y} width="8" height={pb.h} fill="#ece6dd" />
+              <rect x={x + 2} y={pb.y} width="2" height={pb.h} fill="#000" opacity=".15" />
+            </g>
+          ))}
+          <rect width={WF} y={pb.y} height="5" fill="#000" opacity=".25" />
+        </g>
+      )}
+
+      <!-- Bordes de losa -->
+      {filas.slice(0, -1).map((f) => (
+        <g>
+          <rect width={WF} y={f.y + f.h - 1.5} height="3" fill="#fffaf2" />
+          <rect width={WF} y={f.y + f.h + 1.5} height="1.5" fill="#000" opacity=".12" />
+        </g>
+      ))}
+      <rect width={WF} height="5" fill="#fffaf2" />
+
+      <!-- Luz ambiental -->
+      <rect width={WF} height={HF} fill={u('luz')} />
+      <rect width={WF} height={HF} fill={u('base')} />
+    </g>
+
+    <!-- ===== Torres de ascensores ===== -->
+    {cores.map((core) => {
+      const u0 = core.column_index * BW;
+      return (
+        <g>
+          {/* lado derecho de la torre */}
+          <g transform={mLado(u0 + BW)}>
+            <rect x={-TOWER_OUT} y={-TOWER_UP} width={TOWER_OUT + D} height={TOWER_UP} fill="#7d7788" />
+            <rect x={-TOWER_OUT} width={TOWER_OUT} height={HF} fill="#7d7788" />
+          </g>
+          {/* techo de la torre */}
+          <g transform={mTecho(-TOWER_UP)}>
+            <rect x={u0} y={-TOWER_OUT} width={BW} height={TOWER_OUT + D} fill="#c4bdb3" />
+          </g>
+          {/* frente de la torre */}
+          <g transform={mFrente(-TOWER_OUT)}>
+            <rect x={u0} y={-TOWER_UP} width={BW} height={HF + TOWER_UP} fill={pal.core_concrete} />
+            <rect x={u0} y={-TOWER_UP} width={BW} height={HF + TOWER_UP} fill={u('luz')} />
+            {filas.map((f) =>
+              f.piso === 0 ? (
+                <rect x={u0 + 7} y={f.y + 10} width={BW - 14} height={f.h - 10} fill="#2b2935" />
+              ) : (
+                <g>
+                  <rect x={u0 + 4} y={f.y + 4} width={BW - 8} height={f.h - 8} fill="none" stroke="#c9c3b9" stroke-width="1.2" />
+                  <rect x={u0 + 9} y={f.y + 8} width={BW - 18} height={f.h - 16} fill={hash(core.column_index, f.r) < 0.25 ? '#e9b765' : '#4a4652'} />
+                </g>
+              ),
+            )}
+            <rect x={u0 + 2} y={-TOWER_UP + 4} width={BW - 4} height={TOWER_UP - 8} fill="#8f897f" />
+            <rect x={u0 + 3} y={-TOWER_UP / 2 - 9} width={BW - 6} height="18" rx="3" fill="#f4efe7" />
+            <text x={u0 + BW / 2} y={-TOWER_UP / 2 + 5} font-size="14" font-weight="800" text-anchor="middle" fill="#2b2935">
+              {core.label}
+            </text>
+          </g>
+        </g>
+      );
+    })}
+
+    <!-- ===== Estrella metálica ===== -->
+    <g transform={`translate(${star.x} ${star.y})`}>
+      <path d="M0 0V-38" stroke="#6b6e75" stroke-width="2.5" />
+      <path d="M-10 0L0 -30L10 0" stroke="#6b6e75" stroke-width="1.5" fill="none" />
+      <g transform="translate(0 -62)">
+        <g class="estrella-halo" filter={u('brillo')} opacity=".8">
+          <polygon points={tri(true, 36)} fill="none" stroke="#ffd23f" stroke-width="6" />
+          <polygon points={tri(false, 36)} fill="none" stroke="#ffd23f" stroke-width="6" />
+        </g>
+        <g fill="none" stroke-linejoin="round">
+          <polygon points={tri(true, 36)} stroke="#ffe27a" stroke-width="2.6" />
+          <polygon points={tri(false, 36)} stroke="#ffe27a" stroke-width="2.6" />
+          <polygon points={tri(true, 29)} stroke="#e0a92a" stroke-width="1.2" />
+          <polygon points={tri(false, 29)} stroke="#e0a92a" stroke-width="1.2" />
+        </g>
       </g>
-    );
-  })}
+    </g>
 
-  <!-- Estructuras de la azotea -->
-  {b.roof_items.map((it) => (
-    <rect x={bx + it.column * COL_W} y={by - 20} width={COL_W * it.width} height="16" fill={it.color_hex} stroke="#2a2c31" stroke-width="1" />
+    <!-- ===== Resaltado de zonas ===== -->
+    {zonas.size > 0 && (
+      <g class="resaltado">
+        {zonas.has('fachada') && (
+          <g transform={mFrente()}><title>Fachada</title><rect width={WF} height={HF} /></g>
+        )}
+        {zonas.has('azotea') && (
+          <g transform={mTecho()}><title>Azotea</title><rect width={WF} height={D} /></g>
+        )}
+        {zonas.has('pasillos') && (
+          <g transform={mFrente()}>
+            <title>Pasillos</title>
+            {filasPasilloSel.map((f) => <rect y={f.y} width={WF} height={f.h} />)}
+          </g>
+        )}
+        {zonas.has('columnas') && (
+          <g transform={mFrente()}>
+            <title>Columnas</title>
+            {columnas.flatMap((x) => bandasSel.map((bd) => <rect x={x - 4} y={bd.y} width="8" height={bd.h} />))}
+          </g>
+        )}
+        {resaltaTorres && (
+          <g transform={mFrente(-TOWER_OUT)}>
+            <title>Escaleras y ascensores</title>
+            {cores.flatMap((core) =>
+              bandasSel.map((bd) => <rect x={core.column_index * BW - 2} y={bd.y} width={BW + 4} height={bd.h} />),
+            )}
+          </g>
+        )}
+      </g>
+    )}
+
+    {mostrarPisos && (
+      <g class="pisos" font-size="12" font-weight="700" text-anchor="end">
+        {filas.map((f) => {
+          const p = P(-10, f.y + f.h / 2 + 4);
+          return <text x={p.x} y={p.y}>{etiquetaPiso(f.piso)}</text>;
+        })}
+      </g>
+    )}
+  </g>
+
+  <!-- ===== Primer plano ===== -->
+  {faroles.map((x) => (
+    <g>
+      <circle cx={x} cy="860" r="34" fill={u('halo')} />
+      <rect x={x - 2} y="860" width="4" height="140" fill="#15161c" />
+      <circle cx={x} cy="860" r="6" fill="#fff3c9" />
+    </g>
   ))}
-
-  <!-- Estrella y arcos -->
-  <g class="estela" fill="none" stroke={star.color} stroke-width="5" stroke-linecap="round" opacity=".85">
-    {arcos.map((d) => <path d={d} />)}
-  </g>
-  <g class="estrella" fill="rgba(255,215,0,.28)" stroke={star.color} stroke-width="3" stroke-linejoin="round">
-    <polygon points={tri(true, 22)} />
-    <polygon points={tri(false, 22)} />
-  </g>
-
-  <!-- Suelo -->
-  <rect x={bx - 14} y={by + FLOORS * FLOOR_H + 4} width={COLS * COL_W + 28} height="4" rx="2" fill="#e9e9e9" />
-
-  {mostrarPisos && (
-    <g class="pisos" font-size="13" text-anchor="end" fill="currentColor">
-      {filas.map((f) => <text x={bx - 10} y={f.y + FLOOR_H / 2 + 4}>{f.piso}</text>)}
+  {arboles.map((t, i) => (
+    <g>
+      <rect x={t.x - 5} y={t.y - 10} width="10" height={VH - t.y + 10} fill="#1a1a1f" />
+      <circle cx={t.x} cy={t.y - t.r * 0.6} r={t.r} fill="#1c3a30" />
+      <circle cx={t.x - t.r * 0.55} cy={t.y - t.r * 0.35} r={t.r * 0.62} fill="#1f4536" />
+      <circle cx={t.x + t.r * 0.5} cy={t.y - t.r * 0.9} r={t.r * 0.58} fill="#23503d" />
+      <circle cx={t.x - t.r * 0.3} cy={t.y - t.r * 1.05} r={t.r * 0.42} fill="#2f6b4c" opacity={i % 2 ? 0.8 : 1} />
+      <circle cx={t.x - t.r * 0.45} cy={t.y - t.r * 1.15} r={t.r * 0.18} fill="#4f9a6c" opacity=".7" />
     </g>
-  )}
-
-  {zonas.size > 0 && (
-    <g class="resaltado">
-      {zonas.has('pasillos') && (
-        <g>
-          <title>Pasillos</title>
-          {filasPasillo.map((f) => <rect x={bx} y={f.y} width={COLS * COL_W} height={FLOOR_H} />)}
-        </g>
-      )}
-      {zonas.has('escaleras') && (
-        <g>
-          <title>Escaleras (núcleos)</title>
-          {cores.flatMap((core) =>
-            bandasSel.map((bd) => <rect x={bx + core.column_index * COL_W - 3} y={bd.y} width={COL_W + 6} height={bd.h} />),
-          )}
-        </g>
-      )}
-      {zonas.has('columnas') && (
-        <g>
-          <title>Columnas (esquemático)</title>
-          {lineasColumnas.flatMap((x) => bandasSel.map((bd) => <rect x={x - 4} y={bd.y} width="8" height={bd.h} />))}
-        </g>
-      )}
-      {zonas.has('azotea') && (
-        <g>
-          <title>Azotea</title>
-          <rect x={bx} y={by - 24} width={COLS * COL_W} height="24" />
-        </g>
-      )}
-      {zonas.has('fachada') && (
-        <g>
-          <title>Fachada</title>
-          <rect x={bx} y={by} width={COLS * COL_W} height={FLOORS * FLOOR_H} />
-        </g>
-      )}
-    </g>
-  )}
+  ))}
 </svg>
 
 <style>
-  .fachada {
+  .edificio {
     display: block;
     width: 100%;
     height: auto;
-    color: var(--texto-suave, #8a8f98);
   }
-  .estela path {
-    stroke-dasharray: 900;
-    stroke-dashoffset: 900;
-    animation: trazo 2.4s 0.3s ease-out forwards;
+  .pisos text {
+    fill: #fff;
+    paint-order: stroke;
+    stroke: #1d2026;
+    stroke-width: 3px;
   }
-  .estela path:nth-child(2) { animation-delay: 0.5s; }
-  .estela path:nth-child(3) { animation-delay: 0.7s; }
-  .estrella {
-    transform-box: fill-box;
-    transform-origin: center;
+  .estrella-halo {
     animation: brillo 3.5s ease-in-out infinite;
   }
   .resaltado rect {
-    fill: rgba(255, 59, 48, 0.22);
+    fill: rgba(255, 59, 48, 0.28);
     stroke: #ff3b30;
-    stroke-width: 3;
-    stroke-dasharray: 8 5;
+    stroke-width: 2.5;
+    stroke-dasharray: 7 4;
     animation: pulso 1.8s ease-in-out infinite;
   }
-  @keyframes trazo { to { stroke-dashoffset: 0; } }
   @keyframes brillo {
-    50% { filter: drop-shadow(0 0 8px #ffd700); }
+    50% { opacity: 0.35; }
   }
   @keyframes pulso {
-    50% { fill: rgba(255, 59, 48, 0.06); }
+    50% { fill: rgba(255, 59, 48, 0.1); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .estela path { animation: none; stroke-dashoffset: 0; }
-    .estrella, .resaltado rect { animation: none; }
+    .estrella-halo,
+    .resaltado rect {
+      animation: none;
+    }
   }
 </style>

@@ -5,11 +5,9 @@ import Fachada from '../components/Fachada.astro';
 import Lateral from '../components/Lateral.astro';
 import IndicadorEtiqueta from '../components/IndicadorEtiqueta.astro';
 import TarjetaReporte from '../components/TarjetaReporte.astro';
-import edificio from '../data/edificio.json';
+import { b, describirPisos, niveles, pisosPasillo } from '../lib/edificio';
 
-const b = edificio.building;
 const estilo = b.architectural_style.replace(' / ', ', ');
-const pasillos = b.floor_palette.filter((f) => f.type === 'corridor').map((f) => f.floor).sort((x, y) => x - y);
 const reportes = (await getCollection('reportes')).sort((x, y) => y.data.date.valueOf() - x.data.date.valueOf());
 const recientes = reportes.slice(0, 3);
 const enCurso = reportes.filter((r) => r.data.status !== 'Completado').length;
@@ -19,8 +17,8 @@ const completados = reportes.length - enCurso;
 <Base>
   <section class="hero">
     <div class="contenedor hero-texto">
-      <p class="antetitulo">{b.location}</p>
-      <h1>Del amarillo al <span class="verde">verde</span>: la recuperación del Bloque 38</h1>
+      <p class="antetitulo">{b.name} · {b.location}</p>
+      <h1>Del amarillo al <span class="verde">verde</span>: la recuperación de {b.alias}</h1>
       <p class="bajada">
         Aquí publicamos cada diagnóstico, obra y reparación del edificio, con fotos del antes y el después y sus soportes, para
         que toda la comunidad pueda seguir el avance hacia la etiqueta verde.
@@ -35,9 +33,9 @@ const completados = reportes.length - enCurso;
     </div>
     <div class="contenedor">
       <dl class="datos">
-        <div><dt>Pisos</dt><dd>{b.grid.floors}</dd></div>
+        <div><dt>Niveles (PB + pisos)</dt><dd>{niveles.length}</dd></div>
         <div><dt>Módulos en fachada</dt><dd>{b.grid.total_columns}</dd></div>
-        <div><dt>Núcleos de escaleras</dt><dd>{b.grid.elevator_cores.length}</dd></div>
+        <div><dt>Módulos de ascensores</dt><dd>{b.grid.elevator_cores.length}</dd></div>
         <div><dt>Informes publicados</dt><dd>{reportes.length}</dd></div>
       </dl>
     </div>
@@ -62,15 +60,17 @@ const completados = reportes.length - enCurso;
       </div>
       <div>
         <p class="antetitulo">El edificio</p>
-        <h2>{b.name}</h2>
+        <h2>{b.alias}</h2>
+        <p class="subtitulo">{b.name}</p>
         <p>
-          Parte del conjunto urbanístico del 23 de Enero ({estilo}). Sus {b.grid.floors} pisos se recorren por{' '}
-          {pasillos.length} pasillos (pisos {pasillos.join(', ')}), conectados a dos núcleos de escaleras y ascensores.
+          Parte del conjunto urbanístico del 23 de Enero ({estilo}). Tiene planta baja y {niveles.length - 1} pisos, con{' '}
+          {pisosPasillo.length} pasillos ({describirPisos(pisosPasillo)}) conectados a {b.grid.elevator_cores.length} módulos de
+          ascensores y escaleras.
         </p>
         <ul class="zonas-clave">
           <li><span style="background:#C4405E"></span><strong>Escaleras</strong> Circulación vertical y ruta de evacuación.</li>
           <li><span style="background:#3B6FB6"></span><strong>Columnas</strong> Estructura que sostiene todo el bloque.</li>
-          <li><span style="background:#E8B04A"></span><strong>Pasillos</strong> Acceso a los apartamentos de varios niveles.</li>
+          <li><span style="background:#E8B04A"></span><strong>Pasillos</strong> Acceso a los apartamentos en {describirPisos(pisosPasillo)}.</li>
         </ul>
       </div>
     </div>
@@ -154,20 +154,15 @@ const completados = reportes.length - enCurso;
     color: #fff;
   }
   .hero-fachada {
-    max-width: 1500px;
-    margin: clamp(32px, 6vw, 64px) auto 0;
-    padding-inline: clamp(0px, 2vw, 24px);
+    margin-top: clamp(24px, 4vw, 48px);
+    /* funde el cielo con el fondo del encabezado */
+    -webkit-mask-image: linear-gradient(transparent, #000 14%);
+    mask-image: linear-gradient(transparent, #000 14%);
   }
   @media (max-width: 700px) {
-    /* En móvil la fachada se muestra más grande y se desliza horizontalmente */
-    .hero-fachada {
-      overflow-x: auto;
-      scrollbar-width: none;
-      padding-inline: 16px;
-    }
+    /* En móvil la escena se recorta centrada en el edificio */
     .hero-fachada :global(svg) {
-      width: 900px;
-      max-width: none;
+      height: 440px;
     }
   }
   .datos {
@@ -244,6 +239,11 @@ const completados = reportes.length - enCurso;
     font-size: 0.82rem;
     text-align: center;
     margin: 10px 0 0;
+  }
+  .subtitulo {
+    margin: -6px 0 16px;
+    font-weight: 700;
+    color: var(--texto-suave);
   }
   .zonas-clave {
     list-style: none;

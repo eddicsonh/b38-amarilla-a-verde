@@ -1,74 +1,76 @@
-# Bloque 38 · Informes del edificio
+# 🍀 Trébol Verde
 
-Sitio estático con los informes de avances y reparaciones del **Superbloque 38 (Zona F, 23 de Enero)** para documentar el paso de **etiqueta amarilla → etiqueta verde**.
+**Seguimiento público de obras de Residencias El Trébol — Bloques 38 y 39, Zona F, 23 de Enero (Caracas).**
 
-- **Stack:** [Astro](https://astro.build) (HTML estático, sin JavaScript en el navegador)
-- **Hosting:** Cloudflare Pages (0 $/mes, SSL automático)
-- **Actualización:** editas archivos `.md` / `.json`, haces `git push` y Cloudflare publica solo.
+Trébol Verde es un sitio web estático donde se publican los diagnósticos, reparaciones y mejoras del edificio, con fotos del *antes* y el *después* y sus soportes en PDF. Su objetivo es documentar, de forma transparente para toda la comunidad, el camino desde la **etiqueta amarilla** (riesgo mitigado / habitable con condiciones) hasta la **etiqueta verde** (estructura segura / mantenimiento al día).
+
+| | |
+| --- | --- |
+| **Stack** | [Astro 7](https://astro.build) · HTML estático, sin JavaScript en el navegador |
+| **Hosting** | Cloudflare Pages — 0 $/mes, ancho de banda ilimitado, HTTPS automático |
+| **Contenido** | Archivos Markdown (`.md`) y JSON versionados en Git |
+| **Publicación** | `git push` → despliegue automático en segundos |
+
+## Qué incluye
+
+- **Portada** con una ilustración del edificio en perspectiva 3/4 al atardecer (generada desde datos, sin imágenes pesadas), el **indicador de etiqueta** con barra de progreso y checklist público, y los últimos informes.
+- **Informes** con estado (Diagnóstico, Planificado, En progreso, Completado), impacto en la etiqueta, zonas afectadas resaltadas sobre la ilustración, galería antes/después y documentos PDF.
+- **Optimizado para datos móviles:** fotos convertidas a WebP en varios tamaños, carga diferida, caché de un año para recursos estáticos.
+
+## Inicio rápido
+
+Requisitos: **Node.js 22.12 o superior**.
+
+```bash
+npm install        # instala dependencias
+npm run dev        # servidor local en http://localhost:4321
+npm run build      # genera el sitio en dist/ y valida el contenido
+npm run preview    # sirve dist/ para revisarlo antes de publicar
+```
+
+## Tareas frecuentes
+
+| Quiero… | Edito… | Guía |
+| --- | --- | --- |
+| Publicar un informe nuevo | `src/content/reportes/*.md` | [Publicar un informe](docs/publicar-informe.md) |
+| Agregar fotos del después | el `.md` del informe + `src/assets/reportes/` | [Publicar un informe](docs/publicar-informe.md#actualizar-un-informe-existente) |
+| Marcar un requisito como cumplido | `src/data/etiqueta.json` | [Indicador de etiqueta](docs/etiqueta.md) |
+| Cambiar datos o colores del edificio | `src/data/edificio.json` | [Ilustración del edificio](docs/ilustracion.md) |
+| Poner el sitio en línea | Cloudflare Pages | [Despliegue](docs/despliegue.md) |
+| Entender cómo está construido | — | [Arquitectura](docs/arquitectura.md) |
 
 ## Estructura
 
 ```
-src/
-├── content/reportes/          ← un .md por informe
-├── assets/reportes/<informe>/ ← fotos antes/después (se optimizan a WebP)
-├── data/
-│   ├── etiqueta.json          ← checklist y barra de progreso de la portada
-│   └── edificio.json          ← datos de la ilustración (pisos, colores, núcleos)
-├── components/                ← Fachada, Lateral, IndicadorEtiqueta, Galeria…
-├── layouts/  pages/  styles/  lib/
-public/pdfs/                   ← facturas y soportes (¡quedan públicos!)
-referencias/diseno-original/   ← canvas e imágenes originales de la fachada
+trebol-verde/
+├── src/
+│   ├── content/reportes/        ← un archivo .md por informe
+│   ├── assets/reportes/<id>/    ← fotos de cada informe (se optimizan en el build)
+│   ├── data/
+│   │   ├── etiqueta.json        ← estado, meta y checklist de la etiqueta
+│   │   └── edificio.json        ← niveles, torres, paleta e ilustración
+│   ├── components/              ← Fachada, Lateral, IndicadorEtiqueta, Galeria, TarjetaReporte
+│   ├── layouts/Base.astro       ← cabecera, pie y metadatos
+│   ├── pages/                   ← portada, listado y página de cada informe
+│   ├── lib/                     ← constantes, utilidades de pisos y hash
+│   ├── styles/global.css        ← variables de diseño y estilos base
+│   └── content.config.ts        ← esquema que valida cada informe
+├── public/
+│   ├── pdfs/                    ← facturas y soportes (¡quedan públicos!)
+│   ├── _headers                 ← reglas de caché para Cloudflare
+│   └── favicon.svg
+├── referencias/                 ← diseño original y fotos de referencia (no se publican)
+└── docs/                        ← documentación
 ```
 
-## Comandos
+## Privacidad
 
-| Comando           | Acción                             |
-| ----------------- | ---------------------------------- |
-| `npm install`     | Instala dependencias               |
-| `npm run dev`     | Servidor local en `localhost:4321` |
-| `npm run build`   | Genera el sitio en `dist/`         |
-| `npm run preview` | Sirve `dist/` para revisarlo       |
+Todo lo que esté en `public/` o se use en un informe **queda público e indexable**. Antes de publicar fotos o PDFs, tapa cédulas, teléfonos, números de cuenta, placas de vehículos, rostros y números de apartamento. Ver [Publicar un informe → Privacidad](docs/publicar-informe.md#privacidad).
 
-## Publicar un informe
+## Documentación
 
-1. Crea `src/content/reportes/AAAA-MM-nombre.md` (el nombre del archivo es la URL):
-
-   ```yaml
-   ---
-   title: "Reparación del sistema de bombas de agua"
-   date: 2026-10-01
-   area: "Servicios básicos"
-   status: "Completado"      # Diagnóstico | Planificado | En progreso | Completado
-   impacto_etiqueta: "Mejora directa para la evaluación de seguridad habitacional"
-   resumen: "Texto corto para la tarjeta."          # opcional
-   zonas: ["servicios"]      # escaleras | columnas | pasillos | fachada | azotea | ascensores | servicios
-   pisos: []                 # ej. [2, 6] — se resaltan en la ilustración
-   fotos:
-     antes:
-       - src: "../../assets/reportes/AAAA-MM-nombre/antes-1.jpg"
-         pie: "Tubería antes del cambio"
-     despues: []
-   archivos_pdf: ["/pdfs/factura-bombas.pdf"]
-   ---
-
-   ## Resumen de la obra
-   Texto del informe en Markdown…
-   ```
-
-2. Copia las fotos en `src/assets/reportes/AAAA-MM-nombre/` y los PDF en `public/pdfs/`.
-3. `npm run build` para validar (si un campo está mal, el build falla con el error).
-4. `git add . && git commit -m "Informe: …" && git push`.
-
-**Antes de subir PDFs o fotos**, tapa datos personales (cédulas, teléfonos, cuentas, rostros, números de apartamento).
-
-## Actualizar la etiqueta
-
-En `src/data/etiqueta.json` cambia `"cumplido": false` → `true`. Opcionalmente pon en `"reporte"` el nombre del informe (sin `.md`) para enlazarlo. El porcentaje se calcula solo.
-
-## Despliegue en Cloudflare Pages
-
-1. Sube el repositorio a GitHub.
-2. Cloudflare Dashboard → Workers & Pages → *Create* → *Pages* → *Connect to Git*.
-3. Framework preset: **Astro** · Build command: `npm run build` · Output: `dist`.
-4. La versión de Node se toma de `.node-version`.
+- [Publicar un informe](docs/publicar-informe.md)
+- [Indicador de etiqueta](docs/etiqueta.md)
+- [Ilustración del edificio](docs/ilustracion.md)
+- [Despliegue en Cloudflare Pages](docs/despliegue.md)
+- [Arquitectura del proyecto](docs/arquitectura.md)

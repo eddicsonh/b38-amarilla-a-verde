@@ -2,6 +2,7 @@ import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { ESTADOS, ZONAS } from './lib/constantes';
+import { PISO_MAX, PISO_MIN } from './lib/edificio';
 
 const reportes = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/reportes' }),
@@ -20,8 +21,8 @@ const reportes = defineCollection({
       resumen: z.string().optional(),
       // Zonas del edificio que se resaltan en la ilustración de la fachada
       zonas: z.array(z.enum(ZONAS)).default([]),
-      // Pisos afectados (1–15). Vacío = no especificado
-      pisos: z.array(z.number().int().min(1).max(15)).default([]),
+      // Pisos afectados: 0 = planta baja, 1–14. Vacío = no especificado
+      pisos: z.array(z.number().int().min(PISO_MIN).max(PISO_MAX)).default([]),
       fotos: z
         .object({
           antes: z.array(foto).default([]),

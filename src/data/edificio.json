@@ -1,54 +1,45 @@
 {
   "building": {
-    "name": "Superbloque 38",
+    "name": "Bloques 38 y 39",
+    "alias": "Residencias El Trébol",
     "location": "Zona F, 23 de Enero, Caracas, Venezuela",
     "architectural_style": "Modernista / Carlos Raúl Villanueva",
-    "view": "Frontal",
     "grid": {
-      "floors": 15,
       "total_columns": 32,
+      "ground_floor_label": "PB",
       "elevator_cores": [
-        { "column_index": 8, "type": "left_core" },
-        { "column_index": 23, "type": "right_core" }
+        { "column_index": 8, "label": "38" },
+        { "column_index": 23, "label": "39" }
       ]
     },
-    "floor_palette": [
-      {"floor": 15, "color_hex": "#D62839", "type": "apartments"},
-      {"floor": 14, "color_hex": "#114B5F", "type": "corridor"},
-      {"floor": 13, "color_hex": "#FFB703", "type": "apartments"},
-      {"floor": 12, "color_hex": "#2A9D8F", "type": "apartments"},
-      {"floor": 11, "color_hex": "#028090", "type": "apartments"},
-      {"floor": 10, "color_hex": "#114B5F", "type": "corridor"},
-      {"floor": 9,  "color_hex": "#3A86FF", "type": "apartments"},
-      {"floor": 8,  "color_hex": "#5E548E", "type": "apartments"},
-      {"floor": 7,  "color_hex": "#3C096C", "type": "apartments"},
-      {"floor": 6,  "color_hex": "#114B5F", "type": "corridor"},
-      {"floor": 5,  "color_hex": "#E85D75", "type": "apartments"},
-      {"floor": 4,  "color_hex": "#2A9D8F", "type": "apartments"},
-      {"floor": 3,  "color_hex": "#028090", "type": "apartments"},
-      {"floor": 2,  "color_hex": "#114B5F", "type": "corridor"},
-      {"floor": 1,  "color_hex": "#FFB703", "type": "apartments"}
+    "levels": [
+      { "floor": 14, "type": "apartments" },
+      { "floor": 13, "type": "apartments" },
+      { "floor": 12, "type": "corridor" },
+      { "floor": 11, "type": "apartments" },
+      { "floor": 10, "type": "apartments" },
+      { "floor": 9, "type": "apartments" },
+      { "floor": 8, "type": "corridor" },
+      { "floor": 7, "type": "apartments" },
+      { "floor": 6, "type": "apartments" },
+      { "floor": 5, "type": "apartments" },
+      { "floor": 4, "type": "corridor" },
+      { "floor": 3, "type": "apartments" },
+      { "floor": 2, "type": "apartments" },
+      { "floor": 1, "type": "apartments" },
+      { "floor": 0, "type": "corridor" }
     ],
-    "accent_palette": ["#E8B04A", "#3A9A5E", "#0F6B5A", "#4B3A78", "#7B67A8", "#C4405E", "#E3A8C4", "#3B6FB6", "#9FCBE6", "#74A94A"],
-    "core_palettes": {
-      "left_core": ["#0077B6", "#D62839", "#FF8800", "#114B5F", "#00A896", "#028090", "#3C096C", "#5E548E", "#E85D75", "#114B5F", "#52B788", "#2A9D8F", "#00A896", "#FF8800", "#D62839"],
-      "right_core": ["#3A86FF", "#028090", "#FFB703", "#E85D75", "#114B5F", "#FF8800", "#5E548E", "#3C096C", "#0077B6", "#2A9D8F", "#D62839", "#48CAE4", "#028090", "#FFB703", "#3C096C"]
+    "palette": {
+      "wall": "#F4EFE7",
+      "panels": ["#E88BC7", "#7447C6", "#D02448", "#F3AAD6", "#5B34A8"],
+      "corridor_parapet": "#2F80DF",
+      "core_concrete": "#A9A49B"
     },
-    "roof_items": [
-      { "column": 2,  "width": 2,   "color_hex": "#2A6F97" },
-      { "column": 8,  "width": 1.2, "color_hex": "#FFFFFF" },
-      { "column": 14, "width": 2,   "color_hex": "#D62839" },
-      { "column": 19, "width": 2,   "color_hex": "#FFB703" },
-      { "column": 23, "width": 1.2, "color_hex": "#F72585" },
-      { "column": 28, "width": 2,   "color_hex": "#3C096C" }
-    ],
-    "artistic_features": {
-      "roof_star": {
-        "shape": "Hexagram (Star of David)",
-        "color": "#FFD700",
-        "arcs": 3,
-        "position_column": 21
-      }
-    }
+    "roof_star": { "position_column": 4 },
+    "roof_tanks": [
+      { "column": 13, "width": 2 },
+      { "column": 17, "width": 1.5 },
+      { "column": 28, "width": 2 }
+    ]
   }
 }

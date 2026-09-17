@@ -1,9 +1,9 @@
 ---
 /**
- * Vista lateral del Superbloque 38: bloque de apartamentos + torre de escaleras
+ * Vista lateral de los Bloques 38 y 39: bloque de apartamentos + torre de escaleras
  * unida por puentes en los pisos de pasillo.
  */
-import edificio from '../data/edificio.json';
+import { b, niveles } from '../lib/edificio';
 import { hash } from '../lib/hash';
 import type { Zona } from '../lib/constantes';
 
@@ -14,9 +14,7 @@ interface Props {
 }
 
 const { id = 'lateral', resaltar, class: className } = Astro.props;
-const b = edificio.building;
-
-const FLOORS = b.grid.floors;
+const FLOORS = niveles.length;
 const FLOOR_H = 34;
 const COL_W = 40;
 const BX = 20;
@@ -28,13 +26,9 @@ const BY = 34;
 const W = TX + TOWER_W + 20;
 const H = BY + FLOORS * FLOOR_H + 22;
 
-const PALETA = ['#3B6FB6', '#9FCBE6', '#4A90D9', '#E3A8C4', '#C4405E'];
+const PALETA = b.palette.panels;
 
-const filas = Array.from({ length: FLOORS }, (_, r) => {
-  const piso = FLOORS - r;
-  const info = b.floor_palette.find((f) => f.floor === piso)!;
-  return { r, piso, y: BY + r * FLOOR_H, pasillo: info.type === 'corridor' };
-});
+const filas = niveles.map((n) => ({ ...n, y: BY + n.r * FLOOR_H }));
 
 const modulos = filas.flatMap((f) =>
   [0, 1, 2].map((c) => {

@@ -2,9 +2,9 @@
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Fachada from '../../components/Fachada.astro';
-import Lateral from '../../components/Lateral.astro';
 import Galeria from '../../components/Galeria.astro';
 import { ESTADO_COLOR, ZONA_ETIQUETA, formatoFecha } from '../../lib/constantes';
+import { describirPisos } from '../../lib/edificio';
 
 export async function getStaticPaths() {
   const reportes = await getCollection('reportes');
@@ -39,15 +39,12 @@ const nombrePdf = (ruta: string) => decodeURIComponent(ruta.split('/').pop() ?? 
       {d.zonas.length > 0 && (
         <div class="contenedor mapa">
           <div class="mapa-frontal">
-            <Fachada id="reporte-fachada" resaltar={resaltar} mostrarPisos />
-          </div>
-          <div class="mapa-lateral">
-            <Lateral id="reporte-lateral" resaltar={resaltar} />
+            <Fachada id="reporte-edificio" resaltar={resaltar} mostrarPisos />
           </div>
           <p class="mapa-leyenda">
             <span class="muestra" aria-hidden="true"></span>
             Zonas involucradas: <strong>{d.zonas.map((z) => ZONA_ETIQUETA[z]).join(', ')}</strong>
-            {d.pisos.length ? <> · Pisos {d.pisos.join(', ')}</> : <> · Pisos por precisar</>}
+            {d.pisos.length ? <> · {describirPisos(d.pisos)}</> : <> · Pisos por precisar</>}
           </p>
         </div>
       )}
@@ -145,22 +142,16 @@ const nombrePdf = (ruta: string) => decodeURIComponent(ruta.split('/').pop() ?? 
 
   .mapa {
     display: grid;
-    grid-template-columns: 1fr minmax(90px, 150px);
-    gap: 16px 24px;
-    align-items: end;
+    gap: 16px;
     margin-top: 36px;
   }
   .mapa-frontal {
-    overflow-x: auto;
-    scrollbar-width: thin;
+    border-radius: var(--radio);
+    overflow: hidden;
   }
   @media (max-width: 700px) {
-    .mapa {
-      grid-template-columns: 1fr 90px;
-    }
     .mapa-frontal :global(svg) {
-      width: 820px;
-      max-width: none;
+      height: 380px;
     }
   }
   .mapa-leyenda {
