@@ -11,8 +11,9 @@
 
 ```
 src/content/reportes/*.md ──► content.config.ts (esquema) ──┐
-src/assets/reportes/**     ──► astro:assets (WebP)          ├──► páginas ──► dist/ ──► Cloudflare Pages
-src/data/etiqueta.json     ──► IndicadorEtiqueta            │
+src/assets/reportes/**     ──► astro:assets (WebP)          │
+src/data/etiqueta.json     ──► IndicadorEtiqueta            ├──► páginas ──► dist/ ──► Cloudflare Pages
+src/data/proceso.json      ──► Proceso                      │
 src/data/edificio.json     ──► lib/edificio.ts ──► Fachada ─┘
 ```
 
@@ -20,7 +21,7 @@ src/data/edificio.json     ──► lib/edificio.ts ──► Fachada ─┘
 
 | URL | Archivo | Contenido |
 | --- | --- | --- |
-| `/` | `src/pages/index.astro` | Escena del edificio, datos clave, indicador de etiqueta, sección "El edificio", últimos 3 informes. |
+| `/` | `src/pages/index.astro` | Escena del edificio, datos clave, proceso hacia la etiqueta verde, indicador de etiqueta, sección "El edificio", últimos 3 informes. |
 | `/reportes/` | `src/pages/reportes/index.astro` | Todos los informes agrupados por estado. |
 | `/reportes/<id>/` | `src/pages/reportes/[id].astro` | Informe: cabecera, escena con zonas resaltadas, impacto, contenido, galería antes/después, PDFs. |
 
@@ -42,6 +43,7 @@ Define la colección `reportes` (cargador `glob` sobre `src/content/reportes/**/
 | `Fachada.astro` | Escena 3/4 del edificio con resaltado opcional. Ver [Ilustración](ilustracion.md). |
 | `Lateral.astro` | Vista lateral esquemática para la portada. |
 | `IndicadorEtiqueta.astro` | Tarjetas amarilla/verde, barra de progreso y checklist. |
+| `Proceso.astro` | Línea de tiempo de las etapas hacia la recertificación. Ver [Proceso](proceso.md). |
 | `TarjetaReporte.astro` | Tarjeta de informe (portada y listado). |
 | `Galeria.astro` | Galería antes/después; cada foto enlaza a una versión grande (1600 px, WebP). |
 

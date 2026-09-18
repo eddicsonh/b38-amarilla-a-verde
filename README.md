@@ -13,7 +13,7 @@ TBloque 38 de amarillo a Verde es un sitio web estático donde se publican los d
 
 ## Qué incluye
 
-- **Portada** con una ilustración del edificio en perspectiva 3/4 al atardecer (generada desde datos, sin imágenes pesadas), el **indicador de etiqueta** con barra de progreso y checklist público, y los últimos informes.
+- **Portada** con una ilustración del edificio en perspectiva 3/4 al atardecer (generada desde datos, sin imágenes pesadas), la **hoja de ruta del proceso** hacia la recertificación, el **indicador de etiqueta** con barra de progreso y checklist público, y los últimos informes.
 - **Informes** con estado (Diagnóstico, Planificado, En progreso, Completado), impacto en la etiqueta, zonas afectadas resaltadas sobre la ilustración, galería antes/después y documentos PDF.
 - **Optimizado para datos móviles:** fotos convertidas a WebP en varios tamaños, carga diferida, caché de un año para recursos estáticos.
 
@@ -35,6 +35,7 @@ npm run preview    # sirve dist/ para revisarlo antes de publicar
 | Publicar un informe nuevo | `src/content/reportes/*.md` | [Publicar un informe](docs/publicar-informe.md) |
 | Agregar fotos del después | el `.md` del informe + `src/assets/reportes/` | [Publicar un informe](docs/publicar-informe.md#actualizar-un-informe-existente) |
 | Marcar un requisito como cumplido | `src/data/etiqueta.json` | [Indicador de etiqueta](docs/etiqueta.md) |
+| Avanzar una etapa del proceso | `src/data/proceso.json` | [Proceso hacia la etiqueta verde](docs/proceso.md) |
 | Cambiar datos o colores del edificio | `src/data/edificio.json` | [Ilustración del edificio](docs/ilustracion.md) |
 | Poner el sitio en línea | Cloudflare Pages | [Despliegue](docs/despliegue.md) |
 | Entender cómo está construido | — | [Arquitectura](docs/arquitectura.md) |
@@ -48,8 +49,9 @@ trebol-verde/
 │   ├── assets/reportes/<id>/    ← fotos de cada informe (se optimizan en el build)
 │   ├── data/
 │   │   ├── etiqueta.json        ← estado, meta y checklist de la etiqueta
+│   │   ├── proceso.json         ← etapas del proceso hacia la recertificación
 │   │   └── edificio.json        ← niveles, torres, paleta e ilustración
-│   ├── components/              ← Fachada, Lateral, IndicadorEtiqueta, Galeria, TarjetaReporte
+│   ├── components/              ← Fachada, Lateral, IndicadorEtiqueta, Proceso, Galeria, TarjetaReporte
 │   ├── layouts/Base.astro       ← cabecera, pie y metadatos
 │   ├── pages/                   ← portada, listado y página de cada informe
 │   ├── lib/                     ← constantes, utilidades de pisos y hash
@@ -71,6 +73,7 @@ Todo lo que esté en `public/` o se use en un informe **queda público e indexab
 
 - [Publicar un informe](docs/publicar-informe.md)
 - [Indicador de etiqueta](docs/etiqueta.md)
+- [Proceso hacia la etiqueta verde](docs/proceso.md)
 - [Ilustración del edificio](docs/ilustracion.md)
 - [Despliegue en Cloudflare Pages](docs/despliegue.md)
 - [Arquitectura del proyecto](docs/arquitectura.md)

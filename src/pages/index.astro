@@ -4,6 +4,7 @@ import Base from '../layouts/Base.astro';
 import Fachada from '../components/Fachada.astro';
 import Lateral from '../components/Lateral.astro';
 import IndicadorEtiqueta from '../components/IndicadorEtiqueta.astro';
+import Proceso from '../components/Proceso.astro';
 import TarjetaReporte from '../components/TarjetaReporte.astro';
 import { b, describirPisos, niveles, pisosPasillo } from '../lib/edificio';
 
@@ -41,12 +42,23 @@ const completados = reportes.length - enCurso;
     </div>
   </section>
 
+  <section id="proceso" class="seccion">
+    <div class="contenedor">
+      <div class="encabezado">
+        <p class="antetitulo">Cómo se llega a la etiqueta verde</p>
+        <h2>El proceso, paso a paso</h2>
+        <p>Estas son las etapas del camino hacia la recertificación, desde conseguir al personal técnico hasta la verificación final.</p>
+      </div>
+      <Proceso />
+    </div>
+  </section>
+
   <section id="etiqueta" class="seccion">
     <div class="contenedor">
       <div class="encabezado">
         <p class="antetitulo">Indicador de etiqueta habitacional</p>
         <h2>¿Cuánto nos falta para la etiqueta verde?</h2>
-        <p>Estos son los requisitos que debe cumplir el edificio. Cada uno se marca solo cuando la obra está terminada y documentada.</p>
+        <p>Estos son los requisitos técnicos que debe cumplir el edificio. Cada uno se marca solo cuando la obra está terminada y documentada.</p>
       </div>
       <IndicadorEtiqueta />
     </div>

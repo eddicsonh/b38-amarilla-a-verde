@@ -1,0 +1,46 @@
+{
+  "fases": [
+    {
+      "titulo": "Buscar personal técnico",
+      "descripcion": "Contratar a un ingeniero estructural para inspeccionar el edificio tras el sismo del 24 de junio.",
+      "estado": "completado",
+      "fecha": null,
+      "reporte": null
+    },
+    {
+      "titulo": "Inspección técnica del edificio",
+      "descripcion": "Visita e inspección de fachada, azotea, tanques de agua, escaleras y columnas por piso.",
+      "estado": "completado",
+      "fecha": "2026-09-10",
+      "reporte": null
+    },
+    {
+      "titulo": "Emisión del informe de daños",
+      "descripcion": "Documentar los hallazgos de la inspección para priorizar y planificar las reparaciones.",
+      "estado": "completado",
+      "fecha": "2026-09-16",
+      "reporte": "2026-09-informe-inicial-danos"
+    },
+    {
+      "titulo": "Priorización y planificación de reparaciones",
+      "descripcion": "Definir el orden de las obras según el riesgo (empezando por el tanque A y el sector J) y su presupuesto.",
+      "estado": "en_curso",
+      "fecha": null,
+      "reporte": null
+    },
+    {
+      "titulo": "Ejecución de las reparaciones",
+      "descripcion": "Obra por obra, cada una con su informe de avance y fotos del antes y el después.",
+      "estado": "en_curso",
+      "fecha": null,
+      "reporte": null
+    },
+    {
+      "titulo": "Verificación final y recertificación",
+      "descripcion": "Solicitar una reinspección que confirme el cumplimiento de los requisitos y emita la etiqueta verde.",
+      "estado": "pendiente",
+      "fecha": null,
+      "reporte": null
+    }
+  ]
+}

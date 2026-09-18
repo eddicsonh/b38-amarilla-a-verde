@@ -1,0 +1,199 @@
+---
+import proceso from '../data/proceso.json';
+import { formatoFecha } from '../lib/constantes';
+
+const ETIQUETA_ESTADO = {
+  completado: 'Completado',
+  en_curso: 'En curso',
+  pendiente: 'Pendiente',
+} as const;
+
+const indiceActual = proceso.fases.findIndex((f) => f.estado === 'en_curso');
+---
+
+<ol class="proceso">
+  {proceso.fases.map((fase, i) => (
+    <li class:list={[fase.estado, { actual: i === indiceActual }]} aria-current={i === indiceActual ? 'step' : undefined}>
+      <span class="marca" aria-hidden="true">
+        {fase.estado === 'completado' ? (
+          <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        ) : (
+          <span class="numero">{i + 1}</span>
+        )}
+      </span>
+      <div class="tarjeta">
+        {i === indiceActual && <span class="aqui">Estamos aquí</span>}
+        <div class="cabecera">
+          <strong>{fase.titulo}</strong>
+          <span class="estado">{ETIQUETA_ESTADO[fase.estado as keyof typeof ETIQUETA_ESTADO]}</span>
+        </div>
+        <p>{fase.descripcion}</p>
+        {(fase.fecha || fase.reporte) && (
+          <p class="meta">
+            {fase.fecha ? formatoFecha(new Date(`${fase.fecha}T00:00:00`)) : null}
+            {fase.fecha && fase.reporte ? ' · ' : null}
+            {fase.reporte ? <a href={`/reportes/${fase.reporte}/`}>Ver informe</a> : null}
+          </p>
+        )}
+      </div>
+    </li>
+  ))}
+</ol>
+
+<style>
+  .proceso {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0;
+  }
+  .proceso li {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 14px;
+  }
+  .marca {
+    position: relative;
+    width: 36px;
+    display: flex;
+    justify-content: center;
+  }
+  .marca::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--tarjeta);
+    border: 3px solid #b9b3a6;
+    z-index: 1;
+  }
+  .marca::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    bottom: -18px;
+    width: 3px;
+    background: var(--borde);
+  }
+  .proceso li:last-child .marca::after {
+    display: none;
+  }
+  .numero {
+    position: relative;
+    z-index: 2;
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 36px;
+    color: var(--texto-suave);
+  }
+  .marca svg {
+    position: relative;
+    z-index: 2;
+    width: 18px;
+    color: #fff;
+    margin-top: 9px;
+  }
+  .completado .marca::before,
+  .completado .marca::after {
+    background: var(--verde);
+    border-color: var(--verde);
+  }
+  .en_curso .marca::before {
+    background: #fff6e2;
+    border-color: var(--amarillo);
+  }
+  .en_curso .numero {
+    color: #96660c;
+  }
+  .tarjeta {
+    position: relative;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    background: var(--tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+  }
+  .actual .tarjeta {
+    border-color: var(--amarillo);
+    box-shadow: 0 0 0 3px #fdf0d5;
+  }
+  .aqui {
+    display: inline-block;
+    margin-bottom: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--amarillo);
+    color: var(--tinta);
+  }
+  .cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px 16px;
+  }
+  .cabecera strong {
+    font-size: clamp(1rem, 3vw, 1.1rem);
+  }
+  .tarjeta p {
+    margin: 6px 0 0;
+    color: var(--texto-suave);
+  }
+  .meta {
+    font-size: 0.9rem;
+  }
+  .meta a {
+    font-weight: 700;
+  }
+  .estado {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #eee9dd;
+    color: var(--texto-suave);
+    white-space: nowrap;
+  }
+  .completado .estado {
+    background: #dcf2e4;
+    color: #1f7442;
+  }
+  .en_curso .estado {
+    background: #fdf0d5;
+    color: #96660c;
+  }
+
+  @media (max-width: 480px) {
+    .proceso li {
+      grid-template-columns: 30px 1fr;
+      gap: 10px;
+    }
+    .marca,
+    .marca::before {
+      width: 30px;
+    }
+    .marca::before {
+      height: 30px;
+    }
+    .numero {
+      line-height: 30px;
+      font-size: 0.85rem;
+    }
+    .marca svg {
+      width: 15px;
+      margin-top: 7px;
+    }
+    .tarjeta {
+      padding: 14px;
+    }
+  }
+</style>
